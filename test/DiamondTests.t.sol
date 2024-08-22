@@ -5,9 +5,26 @@ import "./TestStates.sol";
 
 // test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
-    function testOwners() public view {
-        console.log("size of facetAddressList1:", facetAddressList.length);
-        assertEq(facetAddressList.length, 3);
+    function testOwnersandMajoritySet() public view {
+        address owner = IOwners.owner();
+        address majorityApprover = IOwners.majorityApprover();
+        assertEq(owner, address(this));
+        assertEq(
+            majorityApprover,
+            address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)
+        );
+    }
+
+    function testOwnersTransfer() public {
+        // transfer ownership
+        IOwners.transferOwnership(address(0x0));
+        assertEq(IOwners.owner(), address(0x0));
+    }
+
+    function testTransferMajorityApprovalTransfer() public {
+        // transfer majority approval
+        IOwners.transferMajorityApproval(address(0x0));
+        assertEq(IOwners.majorityApprover(), address(0x0));
     }
 }
 // // test proper deployment of diamond

@@ -10,6 +10,7 @@ import "../src/facets/Test2Facet.sol";
 import "../src/Diamond.sol";
 import "./HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
+import "../src/interfaces/IOwnership.sol";
 
 abstract contract StateDeployDiamond is HelperContract {
     //contract types of facets to be deployed
@@ -21,6 +22,7 @@ abstract contract StateDeployDiamond is HelperContract {
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
+    IOwnership IOwners;
 
     string[] facetNames;
     address[] facetAddressList;
@@ -36,6 +38,9 @@ abstract contract StateDeployDiamond is HelperContract {
         // diamod arguments
         DiamondArgs memory _args = DiamondArgs({
             owner: address(this),
+            majorityApprover: address(
+                0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+            ),
             init: address(0),
             initCalldata: " "
         });
@@ -75,16 +80,13 @@ abstract contract StateDeployDiamond is HelperContract {
         // initialise interfaces
         ILoupe = IDiamondLoupe(address(diamond));
         ICut = IDiamondCut(address(diamond));
+        IOwners = IOwnership(address(diamond));
 
         //upgrade diamond
         ICut.diamondCut(cut, address(0x0), "");
 
         // get all addresses
         facetAddressList = ILoupe.facetAddresses();
-        console.log(
-            "size of facetAddressList in testStates:",
-            facetAddressList.length
-        );
     }
 }
 
