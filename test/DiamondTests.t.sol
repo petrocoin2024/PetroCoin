@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "./TestStates.sol";
-
 // test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
     function testOwnersandMajoritySet() public view {
@@ -19,12 +18,20 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         // transfer ownership
         IOwners.transferOwnership(address(0x0));
         assertEq(IOwners.owner(), address(0x0));
+        //! specify revert reason
+        vm.expectRevert();
+        IOwners.transferOwnership(address(this));
     }
 
     function testTransferMajorityApprovalTransfer() public {
         // transfer majority approval
         IOwners.transferMajorityApproval(address(0x0));
         assertEq(IOwners.majorityApprover(), address(0x0));
+        IOwners.transferOwnership(address(0x0));
+        vm.expectRevert();
+        IOwners.transferMajorityApproval(
+            address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+        );
     }
 }
 // // test proper deployment of diamond
