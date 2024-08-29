@@ -81,6 +81,7 @@ contract TestFactoryVault is StateAddedFactory {
         );
         assertEq(vaultIdArray[0], 1);
         assertEq(vaultIdArray.length, 1);
+        assertEq(IVaultFactory.getVaultLocationById(1), address(timelock));
 
         TokenTimelock timelock2 = IVaultFactory.createTokenTimelock(
             IERC20P,
@@ -92,6 +93,26 @@ contract TestFactoryVault is StateAddedFactory {
         assertEq(vaultIdArray[0], 1);
         assertEq(vaultIdArray[1], 2);
         assertEq(vaultIdArray.length, 2);
+        assertEq(IVaultFactory.getVaultLocationById(2), address(timelock2));
+    }
+
+    function testVaultLock() public {
+        //create token timelock
+        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20 IERC20P = IERC20(address(IERC20Petro));
+        TokenTimelock timelock = IVaultFactory.createTokenTimelock(
+            IERC20P,
+            address(this),
+            block.timestamp + 100000000
+        );
+
+        //check if tokens locked
+        vm.expectRevert();
+        timelock.release();
+
+        //fast forward time to unlock tokens
+        vm.warp(block.timestamp + 100000001);
+        timelock.release();
     }
 }
 // // test proper deployment of diamond

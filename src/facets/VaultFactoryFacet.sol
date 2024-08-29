@@ -88,4 +88,10 @@ contract VaultFactoryFacet {
     ) public view returns (uint256[] memory) {
         return LibVaultFactory._getHolderVaults(holder);
     }
+
+    function getVaultLocationById(
+        uint256 vaultId
+    ) public view returns (address) {
+        return LibVaultFactory._getVaultLocationById(vaultId);
+    }
 }
