@@ -13,6 +13,7 @@ import "../src/facets/Erc20PetroCoinFacet.sol";
 import "../src/Diamond.sol";
 import "./HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
+import "../src/facets/VaultFactoryFacet.sol";
 
 abstract contract StateDeployDiamond is HelperContract {
     //contract types of facets to be deployed
@@ -21,12 +22,14 @@ abstract contract StateDeployDiamond is HelperContract {
     DiamondLoupeFacet dLoupe;
     OwnershipFacet ownerF;
     Erc20PetroCoinFacet erc20;
+    VaultFactoryFacet vaultFactory;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
     IOwnership IOwners;
-    IErc20PetroCoin IERC20;
+    IErc20PetroCoin IERC20Petro;
+    VaultFactoryFacet IVaultFactory;
 
     string[] facetNames;
     address[] facetAddressList;
@@ -107,7 +110,27 @@ abstract contract StateDeployDiamond is HelperContract {
 
         ICut.diamondCut(cutErc20, address(0x0), "");
         facetAddressList = ILoupe.facetAddresses();
-        IERC20 = IErc20PetroCoin(address(diamond));
+        IERC20Petro = IErc20PetroCoin(address(diamond));
+    }
+}
+
+abstract contract StateAddedFactory is StateDeployDiamond {
+    function setUp() public virtual override {
+        super.setUp();
+        facetNames.push("VaultFactoryFacet");
+        //contracts to be deployed
+        vaultFactory = new VaultFactoryFacet();
+        // array of functions to add
+        FacetCut[] memory vaultFactoryCut = new FacetCut[](1);
+        vaultFactoryCut[0] = FacetCut({
+            facetAddress: address(vaultFactory),
+            action: FacetCutAction.Add,
+            functionSelectors: generateSelectors("VaultFactoryFacet")
+        });
+
+        // add functions to diamond
+        ICut.diamondCut(vaultFactoryCut, address(0x0), "");
+        IVaultFactory = VaultFactoryFacet(address(diamond));
     }
 }
 

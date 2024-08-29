@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import "../src/interfaces/IERC20.sol";
 import "./TestStates.sol";
 // test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
@@ -37,18 +38,60 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
 
 //test ERC20 Lib Facet
 
-contract TestERC20FacetInitialized is StateDeployDiamond {
+contract TestERC20Facet is StateDeployDiamond {
     function testERC20FacetInitialized() public {
         //initialize ERC20 Facet
-        IERC20.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
 
-        assertEq(IERC20.name(), "PetroCoin");
-        assertEq(IERC20.symbol(), "PC");
-        assertEq(IERC20.totalSupply(), 1000000);
-        assertEq(IERC20.decimals(), 18);
+        assertEq(IERC20Petro.name(), "PetroCoin");
+        assertEq(IERC20Petro.symbol(), "PC");
+        assertEq(IERC20Petro.totalSupply(), 1000000);
+        assertEq(IERC20Petro.decimals(), 18);
 
         vm.expectRevert();
-        IERC20.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+    }
+
+    //todo: test ERC20 functions
+}
+
+contract TestFactoryVault is StateAddedFactory {
+    function testFactoryVaultInitialized() public {
+        //initialize Vault Factory Facet
+        IVaultFactory.initializeVaultFactory();
+
+        assertEq(IVaultFactory.vaultCount(), 0);
+        assertTrue(IVaultFactory.isInitialized());
+    }
+
+    function testVaultCreation() public {
+        //create token timelock
+        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        uint256 initialVaultCount = IVaultFactory.vaultCount();
+        IERC20 IERC20P = IERC20(address(IERC20Petro));
+        TokenTimelock timelock = IVaultFactory.createTokenTimelock(
+            IERC20P,
+            address(this),
+            block.timestamp + 100000000
+        );
+
+        assertEq(IVaultFactory.vaultCount(), initialVaultCount + 1);
+        uint256[] memory vaultIdArray = IVaultFactory.getHolderVaults(
+            address(this)
+        );
+        assertEq(vaultIdArray[0], 1);
+        assertEq(vaultIdArray.length, 1);
+
+        TokenTimelock timelock2 = IVaultFactory.createTokenTimelock(
+            IERC20P,
+            address(this),
+            block.timestamp + 200000000
+        );
+        vaultIdArray = IVaultFactory.getHolderVaults(address(this));
+        assertEq(IVaultFactory.vaultCount(), initialVaultCount + 2);
+        assertEq(vaultIdArray[0], 1);
+        assertEq(vaultIdArray[1], 2);
+        assertEq(vaultIdArray.length, 2);
     }
 }
 // // test proper deployment of diamond
