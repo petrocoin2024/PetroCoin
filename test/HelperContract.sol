@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.26;
 
 import "../lib/solidity-stringutils/strings.sol";
 import "../src/interfaces/IDiamond.sol";

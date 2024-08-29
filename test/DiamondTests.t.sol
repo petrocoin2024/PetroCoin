@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.26;
 
 import "./TestStates.sol";
 // test proper deployment of diamond
@@ -32,6 +32,23 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         IOwners.transferMajorityApproval(
             address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
         );
+    }
+}
+
+//test ERC20 Lib Facet
+
+contract TestERC20FacetInitialized is StateDeployDiamond {
+    function testERC20FacetInitialized() public {
+        //initialize ERC20 Facet
+        IERC20.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+
+        assertEq(IERC20.name(), "PetroCoin");
+        assertEq(IERC20.symbol(), "PC");
+        assertEq(IERC20.totalSupply(), 1000000);
+        assertEq(IERC20.decimals(), 18);
+
+        vm.expectRevert();
+        IERC20.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
     }
 }
 // // test proper deployment of diamond

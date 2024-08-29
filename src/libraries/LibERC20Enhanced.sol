@@ -1,4 +1,4 @@
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.26;
 
 // import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 library LibErc20Enhanced {
@@ -15,6 +15,8 @@ library LibErc20Enhanced {
         bool initialized;
         uint256 ownerHoldPeriod;
         uint256 producerHoldPeriod;
+        // mapping(address => mapping(uint256 => uint256)) ownerHoldLedger;
+        // mapping(address => uint256) producerHoldLedger;
     }
 
     event Transfer(address indexed from, address indexed to, uint256 value);

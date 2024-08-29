@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.26;
 
 import "../src/interfaces/IDiamondCut.sol";
+import "../src/interfaces/IOwnership.sol";
+import "../src/interfaces/IErc20PetroCoin.sol";
 import "../src/facets/DiamondCutFacet.sol";
 import "../src/facets/DiamondLoupeFacet.sol";
 import "../src/facets/OwnershipFacet.sol";
 import "../src/facets/Test1Facet.sol";
 import "../src/facets/Test2Facet.sol";
+import "../src/facets/Erc20PetroCoinFacet.sol";
 import "../src/Diamond.sol";
 import "./HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
-import "../src/interfaces/IOwnership.sol";
 
 abstract contract StateDeployDiamond is HelperContract {
     //contract types of facets to be deployed
@@ -18,11 +20,13 @@ abstract contract StateDeployDiamond is HelperContract {
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
     OwnershipFacet ownerF;
+    Erc20PetroCoinFacet erc20;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
     IOwnership IOwners;
+    IErc20PetroCoin IERC20;
 
     string[] facetNames;
     address[] facetAddressList;
@@ -33,7 +37,13 @@ abstract contract StateDeployDiamond is HelperContract {
         dCutFacet = new DiamondCutFacet();
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
-        facetNames = ["DiamondCutFacet", "DiamondLoupeFacet", "OwnershipFacet"];
+        erc20 = new Erc20PetroCoinFacet();
+        facetNames = [
+            "DiamondCutFacet",
+            "DiamondLoupeFacet",
+            "OwnershipFacet",
+            "Erc20PetroCoinFacet"
+        ];
 
         // diamod arguments
         DiamondArgs memory _args = DiamondArgs({
@@ -86,7 +96,18 @@ abstract contract StateDeployDiamond is HelperContract {
         ICut.diamondCut(cut, address(0x0), "");
 
         // get all addresses
+
+        //Add Erc20 Functionality
+        FacetCut[] memory cutErc20 = new FacetCut[](1);
+        cutErc20[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: FacetCutAction.Add,
+            functionSelectors: generateSelectors("Erc20PetroCoinFacet")
+        });
+
+        ICut.diamondCut(cutErc20, address(0x0), "");
         facetAddressList = ILoupe.facetAddresses();
+        IERC20 = IErc20PetroCoin(address(diamond));
     }
 }
 
