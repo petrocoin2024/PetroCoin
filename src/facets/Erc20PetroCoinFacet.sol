@@ -2,6 +2,9 @@
 pragma solidity ^0.8.26;
 
 import {LibErc20Enhanced} from "../libraries/LibERC20Enhanced.sol";
+import {LibDiamond} from "../libraries/LibDiamond.sol";
+import {IERC20} from "../interfaces/IERC20.sol";
+import "./VaultFactoryFacet.sol";
 
 contract Erc20PetroCoinFacet {
     //!force ownership to initialize
@@ -9,7 +12,9 @@ contract Erc20PetroCoinFacet {
         string memory _name,
         string memory _symbol,
         uint256 _totalSupply,
-        uint8 _decimals
+        uint8 _decimals,
+        uint256 _ownerHoldPeriod,
+        uint256 _producerHoldPeriod
     ) public {
         LibErc20Enhanced.ERC20Storage storage erc20Enhanced = LibErc20Enhanced
             .erc20Storage();
@@ -19,6 +24,9 @@ contract Erc20PetroCoinFacet {
         erc20Enhanced.totalSupply = _totalSupply;
         erc20Enhanced.initialized = true;
         erc20Enhanced.decimals = _decimals;
+        erc20Enhanced.balances[address(this)] = _totalSupply;
+        erc20Enhanced.ownerHoldPeriod = _ownerHoldPeriod;
+        erc20Enhanced.producerHoldPeriod = _producerHoldPeriod;
     }
 
     // ERC20 functions
@@ -50,6 +58,42 @@ contract Erc20PetroCoinFacet {
         return LibErc20Enhanced.allowance(owner, spender);
     }
 
+    function getOwnerHoldPeriod() public view returns (uint256) {
+        return LibErc20Enhanced.ownerHoldPeriod();
+    }
+
+    function getTreasureryBalance() public view returns (uint256) {
+        return LibErc20Enhanced.balanceOf(address(this));
+    }
+    function transferTreasuryTokens(
+        address recipient,
+        uint256 amount
+    ) public returns (TokenTimelock timelock) {
+        LibDiamond.enforceIsContractOwner();
+        // TokenTimelock timeVault = _createTokenTimelock(
+        //     LibErc20Enhanced,
+        //     recipient,
+        //     block.timestamp + LibErc20Enhanced.ownerHoldPeriod()
+        // );
+
+        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
+            .vaultFactoryStorage();
+
+        uint256 vaultId = es.vaultCount + 1;
+        es.vaultCount = vaultId;
+        es.holderVaults[recipient].push(vaultId);
+
+        timelock = new TokenTimelock(
+            IERC20(address(this)),
+            recipient,
+            block.timestamp + LibErc20Enhanced.ownerHoldPeriod()
+        );
+        es.vaultLocation[vaultId] = address(timelock);
+        LibErc20Enhanced.transfer(address(this), address(timelock), amount);
+    }
+    // function mint(address account, uint256 amount) public {
+    //     LibErc20Enhanced.mint(account, amount);
+    // }
     //State Variables
     //_treasuryDistrubtionHoldLedger
     //address -> _addressHoldPeriod

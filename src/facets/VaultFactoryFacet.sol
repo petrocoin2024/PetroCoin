@@ -53,11 +53,20 @@ contract VaultFactoryFacet {
         es.vaultCount = 0;
     }
 
+    //todo test as an internal function only
     function createTokenTimelock(
         IERC20 token,
         address beneficiary,
         uint256 releaseTime
     ) public returns (TokenTimelock) {
+        return _createTokenTimelock(token, beneficiary, releaseTime);
+    }
+
+    function _createTokenTimelock(
+        IERC20 token,
+        address beneficiary,
+        uint256 releaseTime
+    ) internal returns (TokenTimelock) {
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
 

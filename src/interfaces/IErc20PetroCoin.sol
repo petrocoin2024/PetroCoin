@@ -2,7 +2,7 @@
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/IERC20.sol)
 
 pragma solidity ^0.8.26;
-
+import "../facets/VaultFactoryFacet.sol";
 /**
  * @dev Interface of the ERC-20 standard as defined in the ERC.
  */
@@ -92,10 +92,18 @@ interface IErc20PetroCoin {
         string memory _name,
         string memory _symbol,
         uint256 _totalSupply,
-        uint8 _decimals
+        uint8 _decimals,
+        uint256 _ownerHoldPeriod,
+        uint256 _producerHoldPeriod
     ) external;
 
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
     function decimals() external view returns (uint8);
+    function transferTreasuryTokens(
+        address recipient,
+        uint256 amount
+    ) external returns (TokenTimelock);
+    function getOwnerHoldPeriod() external view returns (uint256);
+    function getTreasureryBalance() external view returns (uint256);
 }

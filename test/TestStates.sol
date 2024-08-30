@@ -111,12 +111,7 @@ abstract contract StateDeployDiamond is HelperContract {
         ICut.diamondCut(cutErc20, address(0x0), "");
         facetAddressList = ILoupe.facetAddresses();
         IERC20Petro = IErc20PetroCoin(address(diamond));
-    }
-}
 
-abstract contract StateAddedFactory is StateDeployDiamond {
-    function setUp() public virtual override {
-        super.setUp();
         facetNames.push("VaultFactoryFacet");
         //contracts to be deployed
         vaultFactory = new VaultFactoryFacet();

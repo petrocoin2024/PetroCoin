@@ -41,7 +41,14 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
 contract TestERC20Facet is StateDeployDiamond {
     function testERC20FacetInitialized() public {
         //initialize ERC20 Facet
-        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
 
         assertEq(IERC20Petro.name(), "PetroCoin");
         assertEq(IERC20Petro.symbol(), "PC");
@@ -49,13 +56,57 @@ contract TestERC20Facet is StateDeployDiamond {
         assertEq(IERC20Petro.decimals(), 18);
 
         vm.expectRevert();
-        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
     }
 
+    function testTreasureryBalance() public {
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
+        assertEq(IERC20Petro.getTreasureryBalance(), 1000000);
+    }
+
+    function testTreasuryWithdrawal() public {
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
+        assertEq(IERC20Petro.getTreasureryBalance(), 1000000);
+
+        vm.startPrank57
+        IERC20Petro.transferTreasuryTokens(address(this), 1000);
+        vm.stopPrank();
+        TokenTimelock timeLockVault = IERC20Petro.transferTreasuryTokens(
+            address(this),
+            1000
+        );
+
+        uint256[] memory ownerVaults = IVaultFactory.getHolderVaults(
+            address(this)
+        );
+        assertEq(ownerVaults.length, 1);
+        assertEq(IERC20Petro.balanceOf(address(timeLockVault)), 1000);
+    }
     //todo: test ERC20 functions
 }
 
-contract TestFactoryVault is StateAddedFactory {
+contract TestFactoryVault is StateDeployDiamond {
     function testFactoryVaultInitialized() public {
         //initialize Vault Factory Facet
         IVaultFactory.initializeVaultFactory();
@@ -66,7 +117,14 @@ contract TestFactoryVault is StateAddedFactory {
 
     function testVaultCreation() public {
         //create token timelock
-        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
         uint256 initialVaultCount = IVaultFactory.vaultCount();
         IERC20 IERC20P = IERC20(address(IERC20Petro));
         TokenTimelock timelock = IVaultFactory.createTokenTimelock(
@@ -98,7 +156,14 @@ contract TestFactoryVault is StateAddedFactory {
 
     function testVaultLock() public {
         //create token timelock
-        IERC20Petro.initErc20PetroCoin("PetroCoin", "PC", 1000000, 18);
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
         IERC20 IERC20P = IERC20(address(IERC20Petro));
         TokenTimelock timelock = IVaultFactory.createTokenTimelock(
             IERC20P,
@@ -109,9 +174,10 @@ contract TestFactoryVault is StateAddedFactory {
         //check if tokens locked
         vm.expectRevert();
         timelock.release();
-
+        IERC20Petro.transferTreasuryTokens(address(this), 1000);
+        uint256 ownerTimeHold = IERC20Petro.getOwnerHoldPeriod();
         //fast forward time to unlock tokens
-        vm.warp(block.timestamp + 100000001);
+        vm.warp(block.timestamp + ownerTimeHold + 1);
         timelock.release();
     }
 }

@@ -1,6 +1,5 @@
 pragma solidity ^0.8.26;
 
-// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 library LibErc20Enhanced {
     bytes32 constant ERC20_STORAGE_POSITION =
         keccak256("petrocoin.diamond.ERC20.storage");
@@ -15,8 +14,6 @@ library LibErc20Enhanced {
         bool initialized;
         uint256 ownerHoldPeriod;
         uint256 producerHoldPeriod;
-        // mapping(address => mapping(uint256 => uint256)) ownerHoldLedger;
-        // mapping(address => uint256) producerHoldLedger;
     }
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -48,11 +45,33 @@ library LibErc20Enhanced {
     function balanceOf(address account) internal view returns (uint256) {
         return erc20Storage().balances[account];
     }
+    function ownerHoldPeriod() internal view returns (uint256) {
+        return erc20Storage().ownerHoldPeriod;
+    }
     function allowance(
         address owner,
         address spender
     ) internal view returns (uint256) {
         return erc20Storage().allowances[owner][spender];
+    }
+
+    function transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        uint256 senderBalance = erc20Storage().balances[sender];
+        require(
+            senderBalance >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        erc20Storage().balances[sender] = senderBalance - amount;
+        erc20Storage().balances[recipient] += amount;
+
+        emit Transfer(sender, recipient, amount);
     }
 
     //transfer
