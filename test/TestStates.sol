@@ -126,6 +126,16 @@ abstract contract StateDeployDiamond is HelperContract {
         // add functions to diamond
         ICut.diamondCut(vaultFactoryCut, address(0x0), "");
         IVaultFactory = VaultFactoryFacet(address(diamond));
+
+        //initialize ERC20 Facet
+        IERC20Petro.initErc20PetroCoin(
+            "PetroCoin",
+            "PC",
+            1000000,
+            18,
+            47304000,
+            31536000
+        );
     }
 }
 

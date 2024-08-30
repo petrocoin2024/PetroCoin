@@ -48,6 +48,11 @@ library LibErc20Enhanced {
     function ownerHoldPeriod() internal view returns (uint256) {
         return erc20Storage().ownerHoldPeriod;
     }
+
+    function producerHoldPeriod() internal view returns (uint256) {
+        return erc20Storage().producerHoldPeriod;
+    }
+
     function allowance(
         address owner,
         address spender
@@ -74,7 +79,14 @@ library LibErc20Enhanced {
         emit Transfer(sender, recipient, amount);
     }
 
-    //transfer
+    function mint(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        erc20Storage().totalSupply += amount;
+        erc20Storage().balances[account] += amount;
+        emit Transfer(address(0), account, amount);
+    }
+
     //transferFrom
     //approve
     //increaseAllowance

@@ -103,4 +103,38 @@ contract VaultFactoryFacet {
     ) public view returns (address) {
         return LibVaultFactory._getVaultLocationById(vaultId);
     }
+
+    function getVaultReleaseTime(
+        uint256 vaultId
+    ) public view returns (uint256) {
+        TokenTimelock timelock = TokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        return timelock.releaseTime();
+    }
+
+    function getVaultBalanceById(
+        uint256 vaultId
+    ) public view returns (uint256) {
+        TokenTimelock timelock = TokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        return timelock.token().balanceOf(address(timelock));
+    }
+
+    function getVaultBeneficiary(
+        uint256 vaultId
+    ) public view returns (address) {
+        TokenTimelock timelock = TokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        return timelock.beneficiary();
+    }
+
+    function releaseVaultTokens(uint256 vaultId) public {
+        TokenTimelock timelock = TokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        timelock.release();
+    }
 }

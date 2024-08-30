@@ -62,6 +62,10 @@ contract Erc20PetroCoinFacet {
         return LibErc20Enhanced.ownerHoldPeriod();
     }
 
+    function getProducerHoldPeriod() public view returns (uint256) {
+        return LibErc20Enhanced.producerHoldPeriod();
+    }
+
     function getTreasureryBalance() public view returns (uint256) {
         return LibErc20Enhanced.balanceOf(address(this));
     }
@@ -70,6 +74,7 @@ contract Erc20PetroCoinFacet {
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibDiamond.enforceIsContractOwner();
+        //!todo: check if this is the correct way to do this
         // TokenTimelock timeVault = _createTokenTimelock(
         //     LibErc20Enhanced,
         //     recipient,
@@ -91,21 +96,58 @@ contract Erc20PetroCoinFacet {
         es.vaultLocation[vaultId] = address(timelock);
         LibErc20Enhanced.transfer(address(this), address(timelock), amount);
     }
+
+    function transfer(address recipient, uint256 amount) public returns (bool) {
+        LibErc20Enhanced.transfer(msg.sender, recipient, amount);
+        return true;
+    }
+
+    function setOwnerHoldPeriod(uint256 _ownerHoldPeriod) public {
+        LibDiamond.enforceIsContractOwner();
+        LibErc20Enhanced.erc20Storage().ownerHoldPeriod = _ownerHoldPeriod;
+    }
+
+    function setProducerHoldPeriod(uint256 _producerHoldPeriod) public {
+        LibDiamond.enforceIsContractOwner();
+        LibErc20Enhanced
+            .erc20Storage()
+            .producerHoldPeriod = _producerHoldPeriod;
+    }
+
+    function mintProducerTokens(
+        address account,
+        uint256 amount
+    ) public returns (TokenTimelock timelock) {
+        LibDiamond.enforceIsMajorityApprover();
+        uint256 producerHoldPeriod = LibErc20Enhanced.producerHoldPeriod();
+        // TokenTimelock timeVault = _createTokenTimelock(
+        //     IERC20(address(this)),
+        //     account,
+        //     block.timestamp + producerHoldPeriod
+        // );
+        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
+            .vaultFactoryStorage();
+
+        uint256 vaultId = es.vaultCount + 1;
+        es.vaultCount = vaultId;
+        es.holderVaults[account].push(vaultId);
+
+        timelock = new TokenTimelock(
+            IERC20(address(this)),
+            account,
+            block.timestamp + producerHoldPeriod
+        );
+        es.vaultLocation[vaultId] = address(timelock);
+
+        LibErc20Enhanced.mint(address(timelock), amount);
+    }
+
     // function mint(address account, uint256 amount) public {
     //     LibErc20Enhanced.mint(account, amount);
     // }
-    //State Variables
-    //_treasuryDistrubtionHoldLedger
-    //address -> _addressHoldPeriod
-    //_mintDistruibutionHoldLedger
-    //address -> _addressHoldPeriod
+
     // Functions
-    // setOwnerHoldPeriod
-    // Requires unanimous vote to approve
-    // setProducerHoldPeriod
-    // Requires unanimous vote to approve
-    // setVotingApprovalThreshold
-    // Requires unanimous vote to approve
+
     // mintProducerTokens
     //          sends a certain number of tokens to the producer who has signed over o&g rights
     //          these tokens come with a hold period equal to _producerHoldPeriod

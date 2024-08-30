@@ -106,4 +106,7 @@ interface IErc20PetroCoin {
     ) external returns (TokenTimelock);
     function getOwnerHoldPeriod() external view returns (uint256);
     function getTreasureryBalance() external view returns (uint256);
+    function setOwnerHoldPeriod(uint256 _ownerHoldPeriod) external;
+    function getProducerHoldPeriod() external view returns (uint256);
+    function setProducerHoldPeriod(uint256 _producerHoldPeriod) external;
 }
