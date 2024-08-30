@@ -14,6 +14,7 @@ library LibErc20Enhanced {
         bool initialized;
         uint256 ownerHoldPeriod;
         uint256 producerHoldPeriod;
+        bool paused;
     }
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -22,6 +23,9 @@ library LibErc20Enhanced {
         address indexed spender,
         uint256 value
     );
+
+    event Paused(address account, uint256 time);
+    event Unpaused(address account, uint256 time);
 
     function erc20Storage() internal pure returns (ERC20Storage storage es) {
         bytes32 position = ERC20_STORAGE_POSITION;
@@ -85,6 +89,27 @@ library LibErc20Enhanced {
         erc20Storage().totalSupply += amount;
         erc20Storage().balances[account] += amount;
         emit Transfer(address(0), account, amount);
+    }
+
+    function pause() internal {
+        require(!erc20Storage().paused, "ERC20: paused");
+        erc20Storage().paused = true;
+        emit Paused(msg.sender, block.timestamp);
+    }
+    function unpause() internal {
+        require(erc20Storage().paused, "ERC20: not paused");
+        erc20Storage().paused = false;
+        emit Unpaused(msg.sender, block.timestamp);
+    }
+
+    function enforceWhenPaused() internal view {
+        bool paused = erc20Storage().paused;
+        require(paused, "ERC20: not paused");
+    }
+
+    function enforceNotPaused() internal view {
+        bool paused = erc20Storage().paused;
+        require(!paused, "ERC20: paused");
     }
 
     //transferFrom

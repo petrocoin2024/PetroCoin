@@ -113,4 +113,7 @@ interface IErc20PetroCoin {
         address account,
         uint256 amount
     ) external returns (TokenTimelock timelock);
+    function pause() external;
+    function unpause() external;
+    function isPaused() external view returns (bool);
 }

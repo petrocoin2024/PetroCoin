@@ -7,8 +7,7 @@ import "../src/interfaces/IErc20PetroCoin.sol";
 import "../src/facets/DiamondCutFacet.sol";
 import "../src/facets/DiamondLoupeFacet.sol";
 import "../src/facets/OwnershipFacet.sol";
-import "../src/facets/Test1Facet.sol";
-import "../src/facets/Test2Facet.sol";
+
 import "../src/facets/Erc20PetroCoinFacet.sol";
 import "../src/Diamond.sol";
 import "./HelperContract.sol";
@@ -139,108 +138,56 @@ abstract contract StateDeployDiamond is HelperContract {
     }
 }
 
-// tests proper upgrade of diamond when adding a facet
-abstract contract StateAddFacet1 is StateDeployDiamond {
-    Test1Facet test1Facet;
+// abstract contract StateCacheBug is StateDeployDiamond {
+//     Test1Facet test1Facet;
 
-    function setUp() public virtual override {
-        super.setUp();
-        //deploy Test1Facet
-        test1Facet = new Test1Facet();
+//     bytes4 ownerSel = hex"8da5cb5b";
+//     bytes4[] selectors;
 
-        // get functions selectors but remove first element (supportsInterface)
-        bytes4[] memory fromGenSelectors = removeElement(
-            uint(0),
-            generateSelectors("Test1Facet")
-        );
+//     function setUp() public virtual override {
+//         super.setUp();
+//         test1Facet = new Test1Facet();
 
-        // array of functions to add
-        FacetCut[] memory facetCut = new FacetCut[](1);
-        facetCut[0] = FacetCut({
-            facetAddress: address(test1Facet),
-            action: FacetCutAction.Add,
-            functionSelectors: fromGenSelectors
-        });
+//         selectors.push(hex"19e3b533");
+//         selectors.push(hex"0716c2ae");
+//         selectors.push(hex"11046047");
+//         selectors.push(hex"cf3bbe18");
+//         selectors.push(hex"24c1d5a7");
+//         selectors.push(hex"cbb835f6");
+//         selectors.push(hex"cbb835f7");
+//         selectors.push(hex"cbb835f8");
+//         selectors.push(hex"cbb835f9");
+//         selectors.push(hex"cbb835fa");
+//         selectors.push(hex"cbb835fb");
 
-        // add functions to diamond
-        ICut.diamondCut(facetCut, address(0x0), "");
-    }
-}
+//         FacetCut[] memory cut = new FacetCut[](1);
+//         bytes4[] memory selectorsAdd = new bytes4[](11);
 
-abstract contract StateAddFacet2 is StateAddFacet1 {
-    Test2Facet test2Facet;
+//         for (uint i = 0; i < selectorsAdd.length; i++) {
+//             selectorsAdd[i] = selectors[i];
+//         }
 
-    function setUp() public virtual override {
-        super.setUp();
-        //deploy Test1Facet
-        test2Facet = new Test2Facet();
+//         cut[0] = FacetCut({
+//             facetAddress: address(test1Facet),
+//             action: FacetCutAction.Add,
+//             functionSelectors: selectorsAdd
+//         });
 
-        // get functions selectors but remove first element (supportsInterface)
-        bytes4[] memory fromGenSelectors = generateSelectors("Test2Facet");
+//         // add test1Facet to diamond
+//         ICut.diamondCut(cut, address(0x0), "");
 
-        // array of functions to add
-        FacetCut[] memory facetCut = new FacetCut[](1);
-        facetCut[0] = FacetCut({
-            facetAddress: address(test2Facet),
-            action: FacetCutAction.Add,
-            functionSelectors: fromGenSelectors
-        });
+//         // Remove selectors from diamond
+//         bytes4[] memory newSelectors = new bytes4[](3);
+//         newSelectors[0] = ownerSel;
+//         newSelectors[1] = selectors[5];
+//         newSelectors[2] = selectors[10];
 
-        // add functions to diamond
-        ICut.diamondCut(facetCut, address(0x0), "");
-    }
-}
+//         cut[0] = FacetCut({
+//             facetAddress: address(0x0),
+//             action: FacetCutAction.Remove,
+//             functionSelectors: newSelectors
+//         });
 
-abstract contract StateCacheBug is StateDeployDiamond {
-    Test1Facet test1Facet;
-
-    bytes4 ownerSel = hex"8da5cb5b";
-    bytes4[] selectors;
-
-    function setUp() public virtual override {
-        super.setUp();
-        test1Facet = new Test1Facet();
-
-        selectors.push(hex"19e3b533");
-        selectors.push(hex"0716c2ae");
-        selectors.push(hex"11046047");
-        selectors.push(hex"cf3bbe18");
-        selectors.push(hex"24c1d5a7");
-        selectors.push(hex"cbb835f6");
-        selectors.push(hex"cbb835f7");
-        selectors.push(hex"cbb835f8");
-        selectors.push(hex"cbb835f9");
-        selectors.push(hex"cbb835fa");
-        selectors.push(hex"cbb835fb");
-
-        FacetCut[] memory cut = new FacetCut[](1);
-        bytes4[] memory selectorsAdd = new bytes4[](11);
-
-        for (uint i = 0; i < selectorsAdd.length; i++) {
-            selectorsAdd[i] = selectors[i];
-        }
-
-        cut[0] = FacetCut({
-            facetAddress: address(test1Facet),
-            action: FacetCutAction.Add,
-            functionSelectors: selectorsAdd
-        });
-
-        // add test1Facet to diamond
-        ICut.diamondCut(cut, address(0x0), "");
-
-        // Remove selectors from diamond
-        bytes4[] memory newSelectors = new bytes4[](3);
-        newSelectors[0] = ownerSel;
-        newSelectors[1] = selectors[5];
-        newSelectors[2] = selectors[10];
-
-        cut[0] = FacetCut({
-            facetAddress: address(0x0),
-            action: FacetCutAction.Remove,
-            functionSelectors: newSelectors
-        });
-
-        ICut.diamondCut(cut, address(0x0), "");
-    }
-}
+//         ICut.diamondCut(cut, address(0x0), "");
+//     }
+// }

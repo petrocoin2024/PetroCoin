@@ -218,6 +218,46 @@ contract TestHoldPeriods is StateDeployDiamond {
         );
     }
 }
+
+contract TestPausable is StateDeployDiamond {
+    function testTransferWhenPaused() public {
+        bool pauseStatus = IERC20Petro.isPaused();
+        assertEq(pauseStatus, false);
+        IERC20Petro.pause();
+        pauseStatus = IERC20Petro.isPaused();
+        assertEq(pauseStatus, true);
+        vm.expectRevert();
+        IERC20Petro.transfer(address(this), 1000);
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        vm.expectRevert();
+        IERC20Petro.pause();
+        vm.stopPrank();
+        IERC20Petro.unpause();
+        uint256 vaultCount = IVaultFactory.vaultCount();
+        assertEq(vaultCount, 0);
+        IERC20Petro.transferTreasuryTokens(
+            0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
+            1000
+        );
+        vaultCount = IVaultFactory.vaultCount();
+        assertEq(vaultCount, 1);
+        uint256 vaultReleaseTime = IVaultFactory.getVaultReleaseTime(1);
+        uint256 ownerHoldPeriod = IERC20Petro.getOwnerHoldPeriod();
+        assertEq(vaultReleaseTime, block.timestamp + ownerHoldPeriod);
+        uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
+        assertEq(vaultBalance, 1000);
+        vm.warp(vaultReleaseTime + 1);
+        IERC20Petro.pause();
+        vm.expectRevert();
+        IVaultFactory.releaseVaultTokens(1);
+        IERC20Petro.unpause();
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(
+            IERC20Petro.balanceOf(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
+            1000
+        );
+    }
+}
 // // test proper deployment of diamond
 
 // contract TestCacheBug is StateCacheBug {

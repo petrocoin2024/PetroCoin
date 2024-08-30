@@ -74,6 +74,7 @@ contract Erc20PetroCoinFacet {
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibDiamond.enforceIsContractOwner();
+        LibErc20Enhanced.enforceNotPaused();
         require(
             LibErc20Enhanced.balanceOf(address(this)) >= amount,
             "INSUFFICIENT_BALANCE"
@@ -102,6 +103,7 @@ contract Erc20PetroCoinFacet {
     }
 
     function transfer(address recipient, uint256 amount) public returns (bool) {
+        LibErc20Enhanced.enforceNotPaused();
         LibErc20Enhanced.transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -122,6 +124,7 @@ contract Erc20PetroCoinFacet {
         address account,
         uint256 amount
     ) public returns (TokenTimelock timelock) {
+        LibErc20Enhanced.enforceNotPaused();
         LibDiamond.enforceIsMajorityApprover();
         uint256 producerHoldPeriod = LibErc20Enhanced.producerHoldPeriod();
         // TokenTimelock timeVault = _createTokenTimelock(
@@ -145,28 +148,18 @@ contract Erc20PetroCoinFacet {
 
         LibErc20Enhanced.mint(address(timelock), amount);
     }
+    function pause() public {
+        LibDiamond.enforceIsContractOwner();
+        LibErc20Enhanced.pause();
+    }
+    function unpause() public {
+        LibDiamond.enforceIsContractOwner();
+        LibErc20Enhanced.unpause();
+    }
 
-    // Functions
-
-    //pause
-    //          pauses all token transfers
-    //          requires unanimous vote to approve
-    //unpause
-    //          unpauses all token transfers
-    //          requires unanimous vote to approve
-    //transferTreasuryTokens
-    //          Requires address of recipient, number of tokens, and hold period
-    //          requires simple majority vote to approve
-    // transfer
-    //          overrides ERC20 transfer function to include hold period
-    //          checks if owner address is waiting on a hold period to expire
-    //          if not, it sends tokens
-    //          if so, it reverts
+    function isPaused() public view returns (bool) {
+        return LibErc20Enhanced.erc20Storage().paused;
+    }
     //burnTreasureryToken
     //          burns tokens from the treasury
-    //selfDestruct
-    //Constructor
-    //          send tokens to owner with _ownerHoldPeriod hold period
-    //          -->7500000 going to each owner
-    //          send tokens to contract treasurery
 }
