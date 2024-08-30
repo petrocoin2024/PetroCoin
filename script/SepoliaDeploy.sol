@@ -1,4 +1,5 @@
 pragma solidity ^0.8.26;
+import "../lib/forge-std/src/Script.sol";
 import "../src/interfaces/IDiamondCut.sol";
 import "../src/interfaces/IOwnership.sol";
 import "../src/interfaces/IErc20PetroCoin.sol";
@@ -12,9 +13,29 @@ import "../test/HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
-contract DeployDiamondSepolia {
+contract DeployDiamondSepolia is Script, HelperContract {
+    Diamond diamond;
+    DiamondCutFacet dCutFacet;
+    DiamondLoupeFacet dLoupe;
+    OwnershipFacet ownerF;
+    Erc20PetroCoinFacet erc20;
+    VaultFactoryFacet vaultFactory;
+
+    //interfaces with Facet ABI connected to diamond address
+    IDiamondLoupe ILoupe;
+    IDiamondCut ICut;
+    IOwnership IOwners;
+    IErc20PetroCoin IERC20Petro;
+    VaultFactoryFacet IVaultFactory;
+
+    string[] facetNames;
+    address[] facetAddressList;
+
     function run() external {
-         dCutFacet = new DiamondCutFacet();
+        // uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+
+        vm.startBroadcast();
+        dCutFacet = new DiamondCutFacet();
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
         erc20 = new Erc20PetroCoinFacet();
@@ -107,12 +128,18 @@ contract DeployDiamondSepolia {
         //initialize ERC20 Facet
         IERC20Petro.initErc20PetroCoin(
             "PetroCoin",
-            "PC",
+            "PTCN",
             1000000,
             18,
             47304000,
             31536000
         );
-    }
+        IERC20Petro.transferTreasuryTokens(address(this), 1000);
+        console.log("Diamond Address: ", address(diamond));
+        uint256 balanceOfOwner = IERC20Petro.balanceOf(
+            IVaultFactory.getVaultLocationById(1)
+        );
+        console.log("Tokens locked in vault: ", balanceOfOwner);
+        vm.stopBroadcast();
     }
 }

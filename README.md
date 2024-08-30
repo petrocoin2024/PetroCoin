@@ -24,3 +24,9 @@ To run only diamond deployment tests use the command
 ```bash
    $ forge test --ffi --match-contract TestDeployDiamond
 ```
+
+To deploy on Sepolia run:
+
+```bash
+   $ forge script --chain sepolia script/SepoliaDeploy.sol:DeployDiamondSepolia --rpc-url $SEPOLIA_RPC_URL --private-key <PRIVATE KEY> --broadcast --verify -vvvv --ffi
+```
