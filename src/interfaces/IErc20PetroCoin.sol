@@ -109,4 +109,8 @@ interface IErc20PetroCoin {
     function setOwnerHoldPeriod(uint256 _ownerHoldPeriod) external;
     function getProducerHoldPeriod() external view returns (uint256);
     function setProducerHoldPeriod(uint256 _producerHoldPeriod) external;
+    function mintProducerTokens(
+        address account,
+        uint256 amount
+    ) external returns (TokenTimelock timelock);
 }

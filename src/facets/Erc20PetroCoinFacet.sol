@@ -74,6 +74,10 @@ contract Erc20PetroCoinFacet {
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibDiamond.enforceIsContractOwner();
+        require(
+            LibErc20Enhanced.balanceOf(address(this)) >= amount,
+            "INSUFFICIENT_BALANCE"
+        );
         //!todo: check if this is the correct way to do this
         // TokenTimelock timeVault = _createTokenTimelock(
         //     LibErc20Enhanced,
@@ -142,16 +146,8 @@ contract Erc20PetroCoinFacet {
         LibErc20Enhanced.mint(address(timelock), amount);
     }
 
-    // function mint(address account, uint256 amount) public {
-    //     LibErc20Enhanced.mint(account, amount);
-    // }
-
     // Functions
 
-    // mintProducerTokens
-    //          sends a certain number of tokens to the producer who has signed over o&g rights
-    //          these tokens come with a hold period equal to _producerHoldPeriod
-    //          requires simple majority vote to approve
     //pause
     //          pauses all token transfers
     //          requires unanimous vote to approve

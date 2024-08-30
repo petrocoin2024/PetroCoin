@@ -166,6 +166,58 @@ contract TestFactoryVault is StateDeployDiamond {
         assertEq(IERC20Petro.balanceOf(address(this)), 1000);
     }
 }
+
+contract TestHoldPeriods is StateDeployDiamond {
+    function testMintProducerTokens() public {
+        vm.expectRevert();
+        IERC20Petro.mintProducerTokens(address(this), 1000);
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        assertEq(IERC20Petro.totalSupply(), 1000000);
+        uint256 initialVaults = IVaultFactory.vaultCount();
+        uint256[] memory beneficiaryVaultsArray = IVaultFactory.getHolderVaults(
+            address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+        );
+        assertEq(beneficiaryVaultsArray.length, 0);
+        IERC20Petro.mintProducerTokens(
+            address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
+            1000
+        );
+        uint256[] memory beneficiaryVaultsArray2 = IVaultFactory
+            .getHolderVaults(
+                address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+            );
+        assertEq(beneficiaryVaultsArray2.length, 1);
+        assertEq(IERC20Petro.totalSupply(), 1001000);
+        assertEq(IVaultFactory.vaultCount(), initialVaults + 1);
+        assertEq(
+            IVaultFactory.getVaultBeneficiary(beneficiaryVaultsArray2[0]),
+            address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+        );
+        assertEq(
+            IVaultFactory.getVaultBalanceById(beneficiaryVaultsArray2[0]),
+            1000
+        );
+        vm.stopPrank();
+        vm.startPrank(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+        vm.expectRevert();
+        IVaultFactory.releaseVaultTokens(beneficiaryVaultsArray2[0]);
+        assertEq(
+            IERC20Petro.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
+            0
+        );
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(
+            beneficiaryVaultsArray2[0]
+        );
+        uint256 producerHoldPeriod = IERC20Petro.getProducerHoldPeriod();
+        assertEq(releaseTime, block.timestamp + producerHoldPeriod);
+        vm.warp(releaseTime + 1);
+        IVaultFactory.releaseVaultTokens(beneficiaryVaultsArray2[0]);
+        assertEq(
+            IERC20Petro.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
+            1000
+        );
+    }
+}
 // // test proper deployment of diamond
 
 // contract TestCacheBug is StateCacheBug {
