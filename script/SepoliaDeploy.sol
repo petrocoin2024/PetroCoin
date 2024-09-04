@@ -49,7 +49,7 @@ contract DeployDiamondSepolia is Script, HelperContract {
 
         // diamod arguments
         DiamondArgs memory _args = DiamondArgs({
-            owner: address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246),
+            owner: address(0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD),
             majorityApprover: address(
                 0x5d625Bc3aC183307439EF12059167BD7c721Ab82
             ),
