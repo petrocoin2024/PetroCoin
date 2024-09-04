@@ -11,7 +11,6 @@ library LibVaultFactory {
         mapping(address => uint256[]) holderVaults;
         //mapping from each vaultID to the address where it is located
         mapping(uint256 => address) vaultLocation;
-        bool initialized;
     }
 
     function vaultFactoryStorage()
@@ -39,9 +38,5 @@ library LibVaultFactory {
         address _holder
     ) internal view returns (uint256[] memory) {
         return vaultFactoryStorage().holderVaults[_holder];
-    }
-
-    function _isInitialized() internal view returns (bool) {
-        return vaultFactoryStorage().initialized;
     }
 }

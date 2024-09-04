@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import "../src/interfaces/IERC20.sol";
 import "./TestStates.sol";
+import "./NewVaultFactoryFacet.sol";
 
 // test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
@@ -55,6 +56,44 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         vm.expectRevert();
         IERC20Petro.setProducerHoldPeriod(1000001);
     }
+
+    function testReplaceLogic() public {
+        IERC20Petro.transferTreasuryTokens(address(this), 1000);
+        uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
+        assertEq(vaultBalance, 1000);
+        assertEq(IVaultFactory.getVaultBeneficiary(1), address(this));
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+        uint256 ownerHoldPeriod = IERC20Petro.getOwnerHoldPeriod();
+        assertEq(releaseTime, block.timestamp + ownerHoldPeriod);
+        assertEq(IVaultFactory.vaultCount(), 1);
+        VaultFactoryFacetV2 newVaultFactory = new VaultFactoryFacetV2();
+        FacetCut[] memory cut = new FacetCut[](1);
+        // cut[0] = FacetCut({
+        //     facetAddress: address(newVaultFactory),
+        //     action: FacetCutAction.Replace,
+        //     functionSelectors: generateSelectors("VaultFactoryFacetV2")
+        // });
+        // ICut.diamondCut(cut, address(0), "0x");
+        // VaultFactoryFacetV2 IVaultFactoryV2 = VaultFactoryFacetV2(
+        //     address(diamond)
+        // );
+        // vm.expectRevert("VaultFactory: already initialized");
+        // IVaultFactoryV2.initializeVaultFactory();
+        // IERC20Petro.transferTreasuryTokens(
+        //     address(0x976EA74026E726554dB657fA54763abd0C3a0aa9),
+        //     1000
+        // );
+        // assertEq(IVaultFactory.vaultCount(), 2);
+        // assertEq(IERC20Petro.getTreasureryBalance(), 998000);
+        // string memory newLogicResult = IVaultFactoryV2.testingNewFunctionLogic(
+        //     2
+        // );
+        // assertEq(newLogicResult, "new logic");
+        // assertEq(IVaultFactoryV2.getVaultReleaseTime(2), 42424242);
+
+        // string memory newLogic = IVaultFactoryV2.testingNewLogic();
+        // assertEq(newLogic, "new logic");
+    }
 }
 
 //test ERC20 Lib Facet
@@ -88,6 +127,7 @@ contract TestERC20Facet is StateDeployDiamond {
         vm.expectRevert();
         IERC20Petro.transferTreasuryTokens(address(this), 1000);
         vm.stopPrank();
+
         TokenTimelock timeLockVault = IERC20Petro.transferTreasuryTokens(
             address(this),
             1000
@@ -103,13 +143,13 @@ contract TestERC20Facet is StateDeployDiamond {
 }
 
 contract TestFactoryVault is StateDeployDiamond {
-    function testFactoryVaultInitialized() public {
-        //initialize Vault Factory Facet
-        IVaultFactory.initializeVaultFactory();
+    // function testFactoryVaultInitialized() public {
+    //     //initialize Vault Factory Facet
+    //     IVaultFactory.initializeVaultFactory();
 
-        assertEq(IVaultFactory.vaultCount(), 0);
-        assertTrue(IVaultFactory.isInitialized());
-    }
+    //     assertEq(IVaultFactory.vaultCount(), 0);
+    //     assertTrue(IVaultFactory.isInitialized());
+    // }
 
     function testVaultCreation() public {
         //create token timelock
@@ -219,6 +259,10 @@ contract TestHoldPeriods is StateDeployDiamond {
     }
 }
 
+// contract TestAddedFunctions is StateDeployDiamond {
+//     function testAddedFunctions() public {}
+// }
+
 contract TestPausable is StateDeployDiamond {
     function testTransferWhenPaused() public {
         bool pauseStatus = IERC20Petro.isPaused();
@@ -260,24 +304,5 @@ contract TestPausable is StateDeployDiamond {
 }
 // // test proper deployment of diamond
 
-// contract TestCacheBug is StateCacheBug {
-//     function testNoCacheBug() public {
-//         bytes4[] memory fromLoupeSelectors = ILoupe.facetFunctionSelectors(
-//             address(test1Facet)
-//         );
-
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[0]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[1]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[2]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[3]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[4]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[6]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[7]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[8]));
-//         assertTrue(containsElement(fromLoupeSelectors, selectors[9]));
-
-//         assertFalse(containsElement(fromLoupeSelectors, ownerSel));
-//         assertFalse(containsElement(fromLoupeSelectors, selectors[10]));
-//         assertFalse(containsElement(fromLoupeSelectors, selectors[5]));
-//     }
-// }
+//TO TEST
+// NEW hold period changes the hold period of new time lock vaults

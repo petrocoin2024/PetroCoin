@@ -32,13 +32,13 @@ contract DeployDiamondSepolia is Script, HelperContract {
     address[] facetAddressList;
 
     function run() external {
-        // uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-
         vm.startBroadcast();
         dCutFacet = new DiamondCutFacet();
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
         erc20 = new Erc20PetroCoinFacet();
+        vaultFactory = new VaultFactoryFacet();
+
         facetNames = [
             "DiamondCutFacet",
             "DiamondLoupeFacet",
@@ -49,9 +49,9 @@ contract DeployDiamondSepolia is Script, HelperContract {
 
         // diamod arguments
         DiamondArgs memory _args = DiamondArgs({
-            owner: address(0x57f6Ca12D3AEc2693ceb99525C74Cd5D92789Dd2),
+            owner: address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246),
             majorityApprover: address(
-                0xc78A91fDc13437bA5707C97DD7D79db671ca3E05
+                0x5d625Bc3aC183307439EF12059167BD7c721Ab82
             ),
             init: address(0),
             initCalldata: " "
@@ -111,8 +111,6 @@ contract DeployDiamondSepolia is Script, HelperContract {
         facetAddressList = ILoupe.facetAddresses();
         IERC20Petro = IErc20PetroCoin(address(diamond));
 
-        //contracts to be deployed
-        vaultFactory = new VaultFactoryFacet();
         // array of functions to add
         FacetCut[] memory vaultFactoryCut = new FacetCut[](1);
         vaultFactoryCut[0] = FacetCut({
@@ -134,6 +132,8 @@ contract DeployDiamondSepolia is Script, HelperContract {
             47304000,
             31536000
         );
+        // IVaultFactory.initializeVaultFactory();
+
         IERC20Petro.transferTreasuryTokens(address(this), 1000);
         console.log("Diamond Address: ", address(diamond));
         uint256 balanceOfOwner = IERC20Petro.balanceOf(

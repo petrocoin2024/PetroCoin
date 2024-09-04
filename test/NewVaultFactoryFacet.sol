@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IERC20} from "../interfaces/IERC20.sol";
-import {LibVaultFactory} from "../libraries/LibVaultFactory.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
+import {LibVaultFactory} from "../src/libraries/LibVaultFactory.sol";
 
-contract TokenTimelock {
+contract NewTokenTimelock {
     IERC20 public immutable _token;
     address public immutable _beneficiary;
     uint256 public immutable _releaseTime;
@@ -28,7 +28,7 @@ contract TokenTimelock {
     }
 
     function releaseTime() public view returns (uint256) {
-        return _releaseTime;
+        return 42424242;
     }
 
     function release() public {
@@ -42,15 +42,27 @@ contract TokenTimelock {
 
         _token.transfer(_beneficiary, amount);
     }
+
+    function testingNewFunctionLogic() public pure returns (string memory) {
+        return "new logic";
+    }
 }
 
-contract VaultFactoryFacet {
+contract VaultFactoryFacetV2 {
+    function initializeVaultFactory() public {
+        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
+            .vaultFactoryStorage();
+        require(!es.initialized, "VaultFactory: already initialized");
+        es.initialized = true;
+        es.vaultCount = 0;
+    }
+
     //todo test as an internal function only
     function createTokenTimelock(
         IERC20 token,
         address beneficiary,
         uint256 releaseTime
-    ) public returns (TokenTimelock) {
+    ) public returns (NewTokenTimelock) {
         return _createTokenTimelock(token, beneficiary, releaseTime);
     }
 
@@ -58,7 +70,7 @@ contract VaultFactoryFacet {
         IERC20 token,
         address beneficiary,
         uint256 releaseTime
-    ) internal returns (TokenTimelock) {
+    ) internal returns (NewTokenTimelock) {
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
 
@@ -66,7 +78,7 @@ contract VaultFactoryFacet {
         es.vaultCount = vaultId;
         es.holderVaults[beneficiary].push(vaultId);
 
-        TokenTimelock timelock = new TokenTimelock(
+        NewTokenTimelock timelock = new NewTokenTimelock(
             token,
             beneficiary,
             releaseTime
@@ -78,6 +90,10 @@ contract VaultFactoryFacet {
 
     function vaultCount() public view returns (uint256) {
         return LibVaultFactory._getVaultCount();
+    }
+
+    function isInitialized() public view returns (bool) {
+        return LibVaultFactory._isInitialized();
     }
 
     function getHolderVaults(
@@ -95,7 +111,7 @@ contract VaultFactoryFacet {
     function getVaultReleaseTime(
         uint256 vaultId
     ) public view returns (uint256) {
-        TokenTimelock timelock = TokenTimelock(
+        NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
         return timelock.releaseTime();
@@ -104,7 +120,7 @@ contract VaultFactoryFacet {
     function getVaultBalanceById(
         uint256 vaultId
     ) public view returns (uint256) {
-        TokenTimelock timelock = TokenTimelock(
+        NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
         return timelock.token().balanceOf(address(timelock));
@@ -113,16 +129,25 @@ contract VaultFactoryFacet {
     function getVaultBeneficiary(
         uint256 vaultId
     ) public view returns (address) {
-        TokenTimelock timelock = TokenTimelock(
+        NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
         return timelock.beneficiary();
     }
 
     function releaseVaultTokens(uint256 vaultId) public {
-        TokenTimelock timelock = TokenTimelock(
+        NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
         timelock.release();
+    }
+
+    function testingNewFunctionLogic(
+        uint256 vaultId
+    ) public view returns (string memory) {
+        NewTokenTimelock timelock = NewTokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        return timelock.testingNewFunctionLogic();
     }
 }
