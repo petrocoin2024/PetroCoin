@@ -50,9 +50,6 @@ abstract contract StateDeployDiamond is HelperContract {
         // diamod arguments
         DiamondArgs memory _args = DiamondArgs({
             owner: address(this),
-            majorityApprover: address(
-                0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            ),
             init: address(0),
             initCalldata: " "
         });

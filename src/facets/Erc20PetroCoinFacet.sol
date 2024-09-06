@@ -125,7 +125,7 @@ contract Erc20PetroCoinFacet {
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibErc20Enhanced.enforceNotPaused();
-        LibDiamond.enforceIsMajorityApprover();
+        LibDiamond.enforceIsContractOwner();
         uint256 producerHoldPeriod = LibErc20Enhanced.producerHoldPeriod();
         // TokenTimelock timeVault = _createTokenTimelock(
         //     IERC20(address(this)),

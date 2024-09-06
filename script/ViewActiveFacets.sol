@@ -13,7 +13,7 @@ import "../test/HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
-contract GetVaultBalance is Script, HelperContract {
+contract ViewActiveFacets is Script, HelperContract {
     Diamond diamond;
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
@@ -32,29 +32,22 @@ contract GetVaultBalance is Script, HelperContract {
     address[] facetAddressList;
     function run() external {
         vm.startBroadcast();
-        IVaultFactory = VaultFactoryFacet(
-            0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1
+        console.log("ViewActiveFacets");
+        ILoupe = IDiamondLoupe(
+            address(0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1)
         );
-        uint256[] memory vaultIds = IVaultFactory.getHolderVaults(
-            address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246)
-        );
-        console.log("vault #:", vaultIds.length);
-        for (uint256 i = 0; i < vaultIds.length; i++) {
-            console.log("vaultId:", vaultIds[i]);
-            uint256 vaultBalance = IVaultFactory.getVaultBalanceById(
-                vaultIds[i]
+        console.log("ILoupe: ", address(ILoupe));
+        address[] memory facetsAddys = ILoupe.facetAddresses();
+        console.log("facetsAddy #:", facetsAddys.length);
+        for (uint256 i = 0; i < facetsAddys.length; i++) {
+            bytes4[] memory selectors = ILoupe.facetFunctionSelectors(
+                facetsAddys[i]
             );
-            console.log("vaultBalance:", vaultBalance);
-            address beneficiary = IVaultFactory.getVaultBeneficiary(
-                vaultIds[i]
-            );
-            console.log("beneficiary:", beneficiary);
-            uint256 releaseTime = IVaultFactory.getVaultReleaseTime(
-                vaultIds[i]
-            );
-            console.log("releaseTime:", releaseTime);
+            for (uint256 j = 0; j < selectors.length; j++) {
+                console.logBytes4(selectors[j]);
+            }
+            console.log("facetsAddy: ", facetsAddys[i]);
         }
-
         vm.stopBroadcast();
     }
 }

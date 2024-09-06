@@ -9,7 +9,6 @@ import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
 
 error NoSelectorsGivenToAdd();
 error NotContractOwner(address _user, address _contractOwner);
-error NotMajorityApprover(address _user, address _majorityApprover);
 error NoSelectorsProvidedForFacetForCut(address _facetAddress);
 error CannotAddSelectorsToZeroAddress(bytes4[] _selectors);
 error NoBytecodeAtAddress(address _contractAddress, string _message);
@@ -45,7 +44,6 @@ library LibDiamond {
         mapping(bytes4 => bool) supportedInterfaces;
         // owner of the contract
         address contractOwner;
-        address majorityApprover;
     }
 
     function diamondStorage()
@@ -78,28 +76,6 @@ library LibDiamond {
     function enforceIsContractOwner() internal view {
         if (msg.sender != diamondStorage().contractOwner) {
             revert NotContractOwner(msg.sender, diamondStorage().contractOwner);
-        }
-    }
-
-    function setMajorityApprover(address _majorityApprover) internal {
-        DiamondStorage storage ds = diamondStorage();
-        ds.majorityApprover = _majorityApprover;
-    }
-
-    function majorityApprover()
-        internal
-        view
-        returns (address majorityApprover_)
-    {
-        majorityApprover_ = diamondStorage().majorityApprover;
-    }
-
-    function enforceIsMajorityApprover() internal view {
-        if (msg.sender != diamondStorage().majorityApprover) {
-            revert NotMajorityApprover(
-                msg.sender,
-                diamondStorage().majorityApprover
-            );
         }
     }
 

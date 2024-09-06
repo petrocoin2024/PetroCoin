@@ -7,16 +7,6 @@ import "./NewVaultFactoryFacet.sol";
 
 // test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
-    function testOwnersandMajoritySet() public view {
-        address owner = IOwners.owner();
-        address majorityApprover = IOwners.majorityApprover();
-        assertEq(owner, address(this));
-        assertEq(
-            majorityApprover,
-            address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)
-        );
-    }
-
     function testOwnersTransfer() public {
         // transfer ownership
         IOwners.transferOwnership(address(0x0));
@@ -24,17 +14,6 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         //! specify revert reason
         vm.expectRevert();
         IOwners.transferOwnership(address(this));
-    }
-
-    function testMajorityApprovalTransfer() public {
-        // transfer majority approval
-        IOwners.transferMajorityApproval(address(0x0));
-        assertEq(IOwners.majorityApprover(), address(0x0));
-        IOwners.transferOwnership(address(0x0));
-        vm.expectRevert();
-        IOwners.transferMajorityApproval(
-            address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
-        );
     }
 
     function testChangeOwnerHoldPeriod() public {
@@ -209,9 +188,11 @@ contract TestFactoryVault is StateDeployDiamond {
 
 contract TestHoldPeriods is StateDeployDiamond {
     function testMintProducerTokens() public {
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         vm.expectRevert();
         IERC20Petro.mintProducerTokens(address(this), 1000);
-        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        vm.stopPrank();
+
         assertEq(IERC20Petro.totalSupply(), 1000000);
         uint256 initialVaults = IVaultFactory.vaultCount();
         uint256[] memory beneficiaryVaultsArray = IVaultFactory.getHolderVaults(
@@ -237,7 +218,6 @@ contract TestHoldPeriods is StateDeployDiamond {
             IVaultFactory.getVaultBalanceById(beneficiaryVaultsArray2[0]),
             1000
         );
-        vm.stopPrank();
         vm.startPrank(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
         vm.expectRevert();
         IVaultFactory.releaseVaultTokens(beneficiaryVaultsArray2[0]);

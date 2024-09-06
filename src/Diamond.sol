@@ -15,7 +15,6 @@ error FunctionNotFound(bytes4 _functionSelector);
 // this avoids stack too deep errors
 struct DiamondArgs {
     address owner;
-    address majorityApprover;
     address init;
     bytes initCalldata;
 }
@@ -26,7 +25,6 @@ contract Diamond {
         DiamondArgs memory _args
     ) payable {
         LibDiamond.setContractOwner(_args.owner);
-        LibDiamond.setMajorityApprover(_args.majorityApprover);
         LibDiamond.diamondCut(_diamondCut, _args.init, _args.initCalldata);
 
         // Code can be added here to perform actions and set state variables.

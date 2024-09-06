@@ -49,14 +49,6 @@ contract NewTokenTimelock {
 }
 
 contract VaultFactoryFacetV2 {
-    function initializeVaultFactory() public {
-        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
-            .vaultFactoryStorage();
-        require(!es.initialized, "VaultFactory: already initialized");
-        es.initialized = true;
-        es.vaultCount = 0;
-    }
-
     //todo test as an internal function only
     function createTokenTimelock(
         IERC20 token,
@@ -90,10 +82,6 @@ contract VaultFactoryFacetV2 {
 
     function vaultCount() public view returns (uint256) {
         return LibVaultFactory._getVaultCount();
-    }
-
-    function isInitialized() public view returns (bool) {
-        return LibVaultFactory._isInitialized();
     }
 
     function getHolderVaults(

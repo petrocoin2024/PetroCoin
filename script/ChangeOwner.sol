@@ -13,7 +13,7 @@ import "../test/HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
-contract GetVaultBalance is Script, HelperContract {
+contract ChangeOwner is Script, HelperContract {
     Diamond diamond;
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
@@ -32,29 +32,18 @@ contract GetVaultBalance is Script, HelperContract {
     address[] facetAddressList;
     function run() external {
         vm.startBroadcast();
-        IVaultFactory = VaultFactoryFacet(
-            0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1
+
+        IOwners = IOwnership(
+            address(0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1)
         );
-        uint256[] memory vaultIds = IVaultFactory.getHolderVaults(
+        address owner = IOwners.owner();
+        console.log("original owner:", owner);
+        IOwners.transferOwnership(
             address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246)
         );
-        console.log("vault #:", vaultIds.length);
-        for (uint256 i = 0; i < vaultIds.length; i++) {
-            console.log("vaultId:", vaultIds[i]);
-            uint256 vaultBalance = IVaultFactory.getVaultBalanceById(
-                vaultIds[i]
-            );
-            console.log("vaultBalance:", vaultBalance);
-            address beneficiary = IVaultFactory.getVaultBeneficiary(
-                vaultIds[i]
-            );
-            console.log("beneficiary:", beneficiary);
-            uint256 releaseTime = IVaultFactory.getVaultReleaseTime(
-                vaultIds[i]
-            );
-            console.log("releaseTime:", releaseTime);
-        }
 
+        address newOwner = IOwners.owner();
+        console.log("newOwner:", newOwner);
         vm.stopBroadcast();
     }
 }
