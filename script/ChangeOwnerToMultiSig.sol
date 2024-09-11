@@ -13,7 +13,7 @@ import "../test/HelperContract.sol";
 import "../lib/forge-std/src/console.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
-contract ChangeOwner is Script, HelperContract {
+contract ChangeOwnerToMultiSig is Script, HelperContract {
     Diamond diamond;
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
@@ -34,12 +34,12 @@ contract ChangeOwner is Script, HelperContract {
         vm.startBroadcast();
 
         IOwners = IOwnership(
-            address(0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1)
+            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
         );
         address owner = IOwners.owner();
         console.log("original owner:", owner);
         IOwners.transferOwnership(
-            address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246)
+            address(0xdD44F0aDe1559f3BCEB66136792866B19ba7F9a7)
         );
 
         address newOwner = IOwners.owner();

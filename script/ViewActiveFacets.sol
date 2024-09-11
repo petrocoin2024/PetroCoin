@@ -34,7 +34,7 @@ contract ViewActiveFacets is Script, HelperContract {
         vm.startBroadcast();
         console.log("ViewActiveFacets");
         ILoupe = IDiamondLoupe(
-            address(0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1)
+            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
         );
         console.log("ILoupe: ", address(ILoupe));
         address[] memory facetsAddys = ILoupe.facetAddresses();

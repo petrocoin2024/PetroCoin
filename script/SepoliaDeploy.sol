@@ -126,12 +126,12 @@ contract DeployDiamondSepolia is Script, HelperContract {
             "PTCN",
             1000000,
             18,
-            47304000,
-            31536000
+            900,
+            300
         );
         // IVaultFactory.initializeVaultFactory();
-
-        IERC20Petro.transferTreasuryTokens(address(this), 1000);
+        address msgSender = msg.sender;
+        IERC20Petro.transferTreasuryTokens(msgSender, 1000);
         console.log("Diamond Address: ", address(diamond));
         uint256 balanceOfOwner = IERC20Petro.balanceOf(
             IVaultFactory.getVaultLocationById(1)

@@ -33,10 +33,23 @@ contract GetVaultBalance is Script, HelperContract {
     function run() external {
         vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
-            0x3167Dc94b4FF583A95170bB6eb3E56d2E14Cb0b1
+            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+        );
+
+        console.log("Diamond Address:", address(IVaultFactory));
+
+        console.log("number of vaults made:", IVaultFactory.vaultCount());
+        console.log(
+            "beneficiary of first vault:",
+            IVaultFactory.getVaultBeneficiary(1)
         );
         uint256[] memory vaultIds = IVaultFactory.getHolderVaults(
-            address(0xdb90Fa67F10e9e58e5c9C768309E2facF30E2246)
+            address(0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD)
+        );
+
+        console.log(
+            "checking balance for account:",
+            address(0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD)
         );
         console.log("vault #:", vaultIds.length);
         for (uint256 i = 0; i < vaultIds.length; i++) {
