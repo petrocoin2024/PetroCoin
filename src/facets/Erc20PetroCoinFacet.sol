@@ -13,7 +13,7 @@ contract Erc20PetroCoinFacet {
         string memory _symbol,
         uint256 _totalSupply,
         uint8 _decimals,
-        uint256 _ownerHoldPeriod,
+        uint256 _longHoldPeriod,
         uint256 _producerHoldPeriod
     ) public {
         LibErc20Enhanced.ERC20Storage storage erc20Enhanced = LibErc20Enhanced
@@ -24,8 +24,7 @@ contract Erc20PetroCoinFacet {
         erc20Enhanced.totalSupply = _totalSupply;
         erc20Enhanced.initialized = true;
         erc20Enhanced.decimals = _decimals;
-        erc20Enhanced.balances[address(this)] = _totalSupply;
-        erc20Enhanced.ownerHoldPeriod = _ownerHoldPeriod;
+        erc20Enhanced.longHoldPeriod = _longHoldPeriod;
         erc20Enhanced.producerHoldPeriod = _producerHoldPeriod;
     }
 
@@ -58,33 +57,23 @@ contract Erc20PetroCoinFacet {
         return LibErc20Enhanced.allowance(owner, spender);
     }
 
-    function getOwnerHoldPeriod() public view returns (uint256) {
-        return LibErc20Enhanced.ownerHoldPeriod();
+    function getLongHoldPeriod() public view returns (uint256) {
+        return LibErc20Enhanced.longHoldPeriod();
     }
 
     function getProducerHoldPeriod() public view returns (uint256) {
         return LibErc20Enhanced.producerHoldPeriod();
     }
-
-    function getTreasureryBalance() public view returns (uint256) {
-        return LibErc20Enhanced.balanceOf(address(this));
+    function getMintedTreasuryTokens() public view returns (uint256) {
+        return LibErc20Enhanced.treasurySupply();
     }
-    function transferTreasuryTokens(
+
+    function mintTreasuryTokens(
         address recipient,
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibDiamond.enforceIsContractOwner();
         LibErc20Enhanced.enforceNotPaused();
-        require(
-            LibErc20Enhanced.balanceOf(address(this)) >= amount,
-            "INSUFFICIENT_BALANCE"
-        );
-        //!todo: check if this is the correct way to do this
-        // TokenTimelock timeVault = _createTokenTimelock(
-        //     LibErc20Enhanced,
-        //     recipient,
-        //     block.timestamp + LibErc20Enhanced.ownerHoldPeriod()
-        // );
 
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
@@ -96,10 +85,10 @@ contract Erc20PetroCoinFacet {
         timelock = new TokenTimelock(
             IERC20(address(this)),
             recipient,
-            block.timestamp + LibErc20Enhanced.ownerHoldPeriod()
+            block.timestamp + LibErc20Enhanced.longHoldPeriod()
         );
         es.vaultLocation[vaultId] = address(timelock);
-        LibErc20Enhanced.transfer(address(this), address(timelock), amount);
+        LibErc20Enhanced.mintTreasuryTokens(amount, address(timelock));
     }
 
     function transfer(address recipient, uint256 amount) public returns (bool) {
@@ -108,9 +97,9 @@ contract Erc20PetroCoinFacet {
         return true;
     }
 
-    function setOwnerHoldPeriod(uint256 _ownerHoldPeriod) public {
+    function setLongHoldPeriod(uint256 _longHoldPeriod) public {
         LibDiamond.enforceIsContractOwner();
-        LibErc20Enhanced.erc20Storage().ownerHoldPeriod = _ownerHoldPeriod;
+        LibErc20Enhanced.erc20Storage().longHoldPeriod = _longHoldPeriod;
     }
 
     function setProducerHoldPeriod(uint256 _producerHoldPeriod) public {

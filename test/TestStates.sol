@@ -127,64 +127,10 @@ abstract contract StateDeployDiamond is HelperContract {
         IERC20Petro.initErc20PetroCoin(
             "PetroCoin",
             "PC",
-            1000000,
-            18,
+            0,
+            6,
             47304000,
             31536000
         );
     }
 }
-
-// abstract contract StateCacheBug is StateDeployDiamond {
-//     Test1Facet test1Facet;
-
-//     bytes4 ownerSel = hex"8da5cb5b";
-//     bytes4[] selectors;
-
-//     function setUp() public virtual override {
-//         super.setUp();
-//         test1Facet = new Test1Facet();
-
-//         selectors.push(hex"19e3b533");
-//         selectors.push(hex"0716c2ae");
-//         selectors.push(hex"11046047");
-//         selectors.push(hex"cf3bbe18");
-//         selectors.push(hex"24c1d5a7");
-//         selectors.push(hex"cbb835f6");
-//         selectors.push(hex"cbb835f7");
-//         selectors.push(hex"cbb835f8");
-//         selectors.push(hex"cbb835f9");
-//         selectors.push(hex"cbb835fa");
-//         selectors.push(hex"cbb835fb");
-
-//         FacetCut[] memory cut = new FacetCut[](1);
-//         bytes4[] memory selectorsAdd = new bytes4[](11);
-
-//         for (uint i = 0; i < selectorsAdd.length; i++) {
-//             selectorsAdd[i] = selectors[i];
-//         }
-
-//         cut[0] = FacetCut({
-//             facetAddress: address(test1Facet),
-//             action: FacetCutAction.Add,
-//             functionSelectors: selectorsAdd
-//         });
-
-//         // add test1Facet to diamond
-//         ICut.diamondCut(cut, address(0x0), "");
-
-//         // Remove selectors from diamond
-//         bytes4[] memory newSelectors = new bytes4[](3);
-//         newSelectors[0] = ownerSel;
-//         newSelectors[1] = selectors[5];
-//         newSelectors[2] = selectors[10];
-
-//         cut[0] = FacetCut({
-//             facetAddress: address(0x0),
-//             action: FacetCutAction.Remove,
-//             functionSelectors: newSelectors
-//         });
-
-//         ICut.diamondCut(cut, address(0x0), "");
-//     }
-// }

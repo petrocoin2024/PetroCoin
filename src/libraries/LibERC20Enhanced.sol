@@ -8,11 +8,12 @@ library LibErc20Enhanced {
         mapping(address => uint256) balances;
         mapping(address => mapping(address => uint256)) allowances;
         uint256 totalSupply;
+        uint256 treasurySupply;
         string name;
         string symbol;
         uint8 decimals;
         bool initialized;
-        uint256 ownerHoldPeriod;
+        uint256 longHoldPeriod;
         uint256 producerHoldPeriod;
         bool paused;
     }
@@ -46,11 +47,14 @@ library LibErc20Enhanced {
     function totalSupply() internal view returns (uint256) {
         return erc20Storage().totalSupply;
     }
+    function treasurySupply() internal view returns (uint256) {
+        return erc20Storage().treasurySupply;
+    }
     function balanceOf(address account) internal view returns (uint256) {
         return erc20Storage().balances[account];
     }
-    function ownerHoldPeriod() internal view returns (uint256) {
-        return erc20Storage().ownerHoldPeriod;
+    function longHoldPeriod() internal view returns (uint256) {
+        return erc20Storage().longHoldPeriod;
     }
 
     function producerHoldPeriod() internal view returns (uint256) {
@@ -90,6 +94,14 @@ library LibErc20Enhanced {
         erc20Storage().balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
+    function mintTreasuryTokens(uint256 amount, address recipient) internal {
+        require(recipient != address(0), "ERC20: mint to the zero address");
+
+        erc20Storage().totalSupply += amount;
+        erc20Storage().balances[recipient] += amount;
+        erc20Storage().treasurySupply += amount;
+        emit Transfer(address(0), recipient, amount);
+    }
 
     function pause() internal {
         require(!erc20Storage().paused, "ERC20: paused");
@@ -118,8 +130,4 @@ library LibErc20Enhanced {
     //decreaseAllowance
     //burn
     //burnFrom
-    //mint
-    //mintTo
-    //pause
-    //unpause
 }
