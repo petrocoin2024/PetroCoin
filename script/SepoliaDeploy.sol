@@ -121,14 +121,7 @@ contract DeployDiamondSepolia is Script, HelperContract {
         IVaultFactory = VaultFactoryFacet(address(diamond));
 
         //initialize ERC20 Facet
-        IERC20Petro.initErc20PetroCoin(
-            "PetroCoin",
-            "PTCN",
-            0,
-            6,
-            47304000,
-            31536000
-        );
+        IERC20Petro.initErc20PetroCoin("PetroCoin", "PTCN", 0, 6, 600, 300);
 
         IERC20Petro.mintTreasuryTokens(
             address(0xC0C708FC157D3b252214307dc85E37c4DF096Ab9),

@@ -100,10 +100,7 @@ interface IErc20PetroCoin {
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
     function decimals() external view returns (uint8);
-    function transferTreasuryTokens(
-        address recipient,
-        uint256 amount
-    ) external returns (TokenTimelock);
+
     function getLongHoldPeriod() external view returns (uint256);
     function getMintedTreasuryTokens() external view returns (uint256);
     function setLongHoldPeriod(uint256 _ownerHoldPeriod) external;

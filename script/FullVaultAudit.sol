@@ -31,15 +31,20 @@ contract FullVaultAudit is Script, HelperContract {
     function run() external {
         vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
         );
         IERC20Petro = IErc20PetroCoin(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
         );
 
         console.log("Diamond Address:", address(IVaultFactory));
 
         console.log("number of vaults made:", IVaultFactory.vaultCount());
+        console.log("total PTCN supply:", IERC20Petro.totalSupply());
+        console.log(
+            "total treasury minted",
+            IERC20Petro.getMintedTreasuryTokens()
+        );
         console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
         for (uint256 i = 1; i <= IVaultFactory.vaultCount(); i++) {
             console.log("vaultId:", i);
@@ -77,15 +82,15 @@ contract ReleaseVaultToken is Script, HelperContract {
     function run() external {
         vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
         );
         address beneficiaryToRelease = address(
-            0x57f6Ca12D3AEc2693ceb99525C74Cd5D92789Dd2
+            0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD
         );
         console.log("Releasing vaults for address:", beneficiaryToRelease);
-        IVaultFactory.releaseVaultTokens(5);
+        IVaultFactory.releaseVaultTokens(3);
         IERC20Petro = IErc20PetroCoin(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
         );
         uint256 ptcnBalance = IERC20Petro.balanceOf(beneficiaryToRelease);
         console.log("Beneficiary PTCN Balance:", ptcnBalance);
