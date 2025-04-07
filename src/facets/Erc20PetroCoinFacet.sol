@@ -127,7 +127,7 @@ contract Erc20PetroCoinFacet {
         uint256 vaultId = es.vaultCount + 1;
         es.vaultCount = vaultId;
         es.holderVaults[account].push(vaultId);
-
+        //TODO: Use create2 for a erc20 transfer prior to vault creation and confirm vault balance in the contructor.
         timelock = new TokenTimelock(
             IERC20(address(this)),
             account,

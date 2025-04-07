@@ -31,10 +31,10 @@ contract FullVaultAudit is Script, HelperContract {
     function run() external {
         vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
-            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
+            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
         IERC20Petro = IErc20PetroCoin(
-            address(0xbaFff1fca61Eaad3726fcd88fbe128a852c2e2FA)
+            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
 
         console.log("Diamond Address:", address(IVaultFactory));

@@ -184,6 +184,48 @@ contract TestFactoryVault is StateDeployDiamond {
         IVaultFactory.releaseVaultTokens(1);
         assertEq(IERC20Petro.balanceOf(address(this)), 1000);
     }
+
+    function testVaultBeneficiary() public {
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
+        assertEq(vaultBalance, 1000);
+        assertEq(IERC20Petro.balanceOf(address(this)), 0);
+        assertEq(IVaultFactory.getVaultBeneficiary(1), address(this));
+
+        address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
+        TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
+        vaultContract.beneficiary();
+        assertEq(vaultContract.beneficiary(), address(this));
+    }
+
+    function testVaultDistributedShares() public {
+        IERC20Petro.mintTreasuryTokens(
+            address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
+            1000
+        );
+        address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
+        TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
+        vm.expectRevert("TokenTimelock: only beneficiary can transfer");
+        vaultContract.transferFractionalOwnership(address(this), 500);
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        vaultContract.transferFractionalOwnership(address(this), 500);
+        uint256 distributedShares = IVaultFactory
+            .getVaultFractionalOwnerBalance(1, address(this));
+        assertEq(distributedShares, 500);
+        vm.stopPrank();
+        uint remainingShares = vaultContract.returnFractionalOwnership(200);
+        assertEq(remainingShares, 300);
+
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+
+        vm.warp(releaseTime + 1);
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(IERC20Petro.balanceOf(address(this)), 300);
+        assertEq(
+            IERC20Petro.balanceOf(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
+            700
+        );
+    }
 }
 
 contract TestHoldPeriods is StateDeployDiamond {

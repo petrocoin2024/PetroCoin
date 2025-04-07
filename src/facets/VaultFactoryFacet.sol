@@ -80,6 +80,16 @@ contract VaultFactoryFacet {
         return timelock.beneficiary();
     }
 
+    function getVaultFractionalOwnerBalance(
+        uint256 vaultId,
+        address fractionalOwner
+    ) public view returns (uint256) {
+        TokenTimelock timelock = TokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        return timelock.distributedShares(fractionalOwner);
+    }
+
     function releaseVaultTokens(uint256 vaultId) public {
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)

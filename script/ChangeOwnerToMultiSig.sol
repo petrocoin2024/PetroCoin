@@ -34,16 +34,16 @@ contract ChangeOwnerToMultiSig is Script, HelperContract {
         vm.startBroadcast();
 
         IOwners = IOwnership(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
         address owner = IOwners.owner();
         console.log("original owner:", owner);
-        IOwners.transferOwnership(
-            address(0xdD44F0aDe1559f3BCEB66136792866B19ba7F9a7)
-        );
+        // IOwners.transferOwnership(
+        //     address(0xdD44F0aDe1559f3BCEB66136792866B19ba7F9a7)
+        // );
 
-        address newOwner = IOwners.owner();
-        console.log("newOwner:", newOwner);
+        // address newOwner = IOwners.owner();
+        // console.log("newOwner:", newOwner);
         vm.stopBroadcast();
     }
 }
