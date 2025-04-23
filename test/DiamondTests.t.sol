@@ -51,6 +51,23 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         uint256 nonce = 0;
         bytes4[] memory addSelectors = new bytes4[](1);
         bytes4[] memory selectors = generateSelectors("VaultFactoryFacetV2");
+
+        bytes4 testingNewSelector = bytes4(
+            keccak256("testingNewFunctionLogic()")
+        );
+        console.log("testingSelector:");
+        console.logBytes4(testingNewSelector);
+        bytes4 testingOldSelector = bytes4(
+            keccak256("createTokenTimelock(address,address,uint256)")
+        );
+        console.log("testingOldSelector:");
+        console.logBytes4(testingOldSelector);
+
+        bytes4 testSelectorFunction = VaultFactoryFacetV2
+            .getHolderVaults
+            .selector;
+        console.log("testSelectorFunction:");
+        console.logBytes4(testSelectorFunction);
         console.log("selectors length: %s", selectors.length);
         for (uint i = 0; i < selectors.length; i++) {
             bytes4 log = (selectors[i]);

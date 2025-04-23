@@ -6,6 +6,7 @@ import {LibDiamond} from "../libraries/LibDiamond.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import "./VaultFactoryFacet.sol";
 
+//TODO: transfer tokenLock creation from mintProducerTokens to the vault factory
 contract Erc20PetroCoinFacet {
     //!force ownership to initialize
     function initErc20PetroCoin(
