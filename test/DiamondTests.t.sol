@@ -5,7 +5,6 @@ import "../src/interfaces/IERC20.sol";
 import "./TestStates.sol";
 import "./NewVaultFactoryFacet.sol";
 
-// test proper deployment of diamond
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
     function testOwnersTransfer() public {
         // transfer ownership
@@ -46,32 +45,50 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         assertEq(releaseTime, block.timestamp + longHoldPeriod);
         assertEq(IVaultFactory.vaultCount(), 1);
         VaultFactoryFacetV2 newVaultFactory = new VaultFactoryFacetV2();
-        FacetCut[] memory cut = new FacetCut[](1);
-        // cut[0] = FacetCut({
-        //     facetAddress: address(newVaultFactory),
-        //     action: FacetCutAction.Replace,
-        //     functionSelectors: generateSelectors("VaultFactoryFacetV2")
-        // });
-        // ICut.diamondCut(cut, address(0), "0x");
-        // VaultFactoryFacetV2 IVaultFactoryV2 = VaultFactoryFacetV2(
-        //     address(diamond)
-        // );
-        // vm.expectRevert("VaultFactory: already initialized");
-        // IVaultFactoryV2.initializeVaultFactory();
-        // IERC20Petro.transferTreasuryTokens(
-        //     address(0x976EA74026E726554dB657fA54763abd0C3a0aa9),
-        //     1000
-        // );
-        // assertEq(IVaultFactory.vaultCount(), 2);
-        // assertEq(IERC20Petro.getTreasureryBalance(), 998000);
+        FacetCut[] memory cut = new FacetCut[](2);
+
+        bytes4[] memory replaceSelectors = new bytes4[](8);
+        uint256 nonce = 0;
+        bytes4[] memory addSelectors = new bytes4[](1);
+        bytes4[] memory selectors = generateSelectors("VaultFactoryFacetV2");
+        console.log("selectors length: %s", selectors.length);
+        for (uint i = 0; i < selectors.length; i++) {
+            bytes4 log = (selectors[i]);
+            console.logBytes4(log);
+            if (log != 0x261cfdb6) {
+                replaceSelectors[nonce] = log;
+                nonce++;
+            } else {
+                addSelectors[0] = log;
+            }
+        }
+
+        cut[0] = FacetCut({
+            facetAddress: address(newVaultFactory),
+            action: FacetCutAction.Replace,
+            functionSelectors: replaceSelectors
+        });
+        cut[1] = FacetCut({
+            facetAddress: address(newVaultFactory),
+            action: FacetCutAction.Add,
+            functionSelectors: addSelectors
+        });
+        ICut.diamondCut(cut, address(0), "0x");
+        VaultFactoryFacetV2 IVaultFactoryV2 = VaultFactoryFacetV2(
+            address(diamond)
+        );
+
+        assertEq(IVaultFactoryV2.vaultCount(), 1);
         // string memory newLogicResult = IVaultFactoryV2.testingNewFunctionLogic(
         //     2
         // );
         // assertEq(newLogicResult, "new logic");
+        assertEq(IVaultFactoryV2.getVaultReleaseTime(1), 42424242);
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        assertEq(IVaultFactoryV2.vaultCount(), 2);
         // assertEq(IVaultFactoryV2.getVaultReleaseTime(2), 42424242);
 
-        // string memory newLogic = IVaultFactoryV2.testingNewLogic();
-        // assertEq(newLogic, "new logic");
+        assertEq(IVaultFactoryV2.testingNewFunctionLogic(), "new logic");
     }
 }
 
@@ -199,7 +216,7 @@ contract TestFactoryVault is StateDeployDiamond {
     }
 
     function testVaultDistributedShares() public {
-        IERC20Petro.mintTreasuryTokens(
+        IERC20Petro.mintProducerTokens(
             address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
             1000
         );

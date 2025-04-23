@@ -37,6 +37,10 @@ contract FullVaultAudit is Script, HelperContract {
             address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
 
+        IOwners = IOwnership(
+            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
+        );
+        console.log("Diamond Owner:", IOwners.owner());
         console.log("Diamond Address:", address(IVaultFactory));
 
         console.log("number of vaults made:", IVaultFactory.vaultCount());

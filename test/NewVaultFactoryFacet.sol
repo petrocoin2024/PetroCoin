@@ -99,10 +99,7 @@ contract VaultFactoryFacetV2 {
     function getVaultReleaseTime(
         uint256 vaultId
     ) public view returns (uint256) {
-        NewTokenTimelock timelock = NewTokenTimelock(
-            LibVaultFactory._getVaultLocationById(vaultId)
-        );
-        return timelock.releaseTime();
+        return 42424242;
     }
 
     function getVaultBalanceById(
@@ -130,12 +127,7 @@ contract VaultFactoryFacetV2 {
         timelock.release();
     }
 
-    function testingNewFunctionLogic(
-        uint256 vaultId
-    ) public view returns (string memory) {
-        NewTokenTimelock timelock = NewTokenTimelock(
-            LibVaultFactory._getVaultLocationById(vaultId)
-        );
-        return timelock.testingNewFunctionLogic();
+    function testingNewFunctionLogic() public pure returns (string memory) {
+        return "new logic";
     }
 }
