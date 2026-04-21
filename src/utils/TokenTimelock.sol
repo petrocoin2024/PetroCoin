@@ -1,107 +1,76 @@
 pragma solidity ^0.8.26;
 
 import {IERC20} from "../interfaces/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract TokenTimelock {
+contract TokenTimelock is ERC20 {
+    using Strings for uint256;
     IERC20 public immutable _token;
-    address public _beneficiary;
     uint256 public immutable _releaseTime;
+    bool public _released;
+    address public immutable _initialBeneficiary;
 
-    mapping(address => uint256) public distributedShares;
-    address[] public fractionalOwners;
     //add RELEASED bool
 
-    constructor(IERC20 token_, address beneficiary_, uint256 releaseTime_) {
+    constructor(
+        IERC20 token_,
+        address beneficiary_,
+        uint256 releaseTime_,
+        uint256 valueLocked_
+    )
+        ERC20(
+            string(
+                abi.encodePacked(
+                    "Petrocoin Vault Receipt - ",
+                    releaseTime_.toString()
+                )
+            ),
+            string(abi.encodePacked("rPTCN_", releaseTime_.toString()))
+        )
+    {
         require(
             releaseTime_ > block.timestamp,
             "TokenTimelock: release time is before current time"
         );
         _token = token_;
-        _beneficiary = beneficiary_;
+        _mint(beneficiary_, valueLocked_);
         _releaseTime = releaseTime_;
+        _initialBeneficiary = beneficiary_;
     }
 
     function token() public view returns (IERC20) {
         return _token;
     }
 
-    function beneficiary() public view returns (address) {
-        return _beneficiary;
+    function isReleased() public view returns (bool) {
+        return _released;
+    }
+
+    function initialBeneficiary() public view returns (address) {
+        return _initialBeneficiary;
     }
 
     function releaseTime() public view returns (uint256) {
         return _releaseTime;
     }
 
-    function release() public {
+    function release() public returns (uint256 remainingSupply) {
         require(
             block.timestamp >= _releaseTime,
             "TokenTimelock: current time is before release time"
         );
-
-        uint256 vaultBalance = _token.balanceOf(address(this));
-        require(vaultBalance > 0, "TokenTimelock: no tokens to release");
-        for (uint256 i = 0; i < fractionalOwners.length; i++) {
-            vaultBalance -= distributedShares[fractionalOwners[i]];
-            _token.transfer(
-                fractionalOwners[i],
-                distributedShares[fractionalOwners[i]]
-            );
+        require(
+            balanceOf(msg.sender) > 0,
+            "TokenTimelock: only beneficiaries can release"
+        );
+        require(!_released, "TokenTimelock: tokens already released");
+        uint256 msgSenderBalance = balanceOf(msg.sender);
+        _burn(msg.sender, msgSenderBalance);
+        _token.transfer(msg.sender, msgSenderBalance);
+        if (totalSupply() == 0) {
+            _released = true;
         }
-        _token.transfer(_beneficiary, vaultBalance);
-    }
-
-    function transferBeneficiary(address newBeneficiary) public {
-        require(
-            msg.sender == _beneficiary,
-            "TokenTimelock: only beneficiary can transfer"
-        );
-        _beneficiary = newBeneficiary;
-    }
-
-    function transferFractionalOwnership(
-        address newBeneficiary,
-        uint256 amount
-    ) public {
-        require(
-            msg.sender == _beneficiary,
-            "TokenTimelock: only beneficiary can transfer"
-        );
-        uint256 sharesCurrentlyOwnedByBeneficiary = _token.balanceOf(
-            address(this)
-        );
-        bool newBeneficiaryExists = false;
-        for (uint256 i = 0; i < fractionalOwners.length; i++) {
-            sharesCurrentlyOwnedByBeneficiary -= distributedShares[
-                fractionalOwners[i]
-            ];
-            if (fractionalOwners[i] == newBeneficiary) {
-                newBeneficiaryExists = true;
-            }
-        }
-        require(
-            sharesCurrentlyOwnedByBeneficiary >= amount,
-            "TokenTimelock: insufficient shares owned by beneficiary"
-        );
-
-        distributedShares[newBeneficiary] += amount;
-        if (!newBeneficiaryExists) {
-            fractionalOwners.push(newBeneficiary);
-        }
-    }
-
-    function returnFractionalOwnership(
-        uint256 amount
-    ) public returns (uint remainingShares) {
-        require(
-            distributedShares[msg.sender] != 0,
-            "TokenTimelock: Only fractional owners can return shares"
-        );
-        require(
-            distributedShares[msg.sender] >= amount,
-            "TokenTimelock: insufficient shares"
-        );
-        distributedShares[msg.sender] -= amount;
-        remainingShares = distributedShares[msg.sender];
+        remainingSupply = totalSupply();
     }
 }

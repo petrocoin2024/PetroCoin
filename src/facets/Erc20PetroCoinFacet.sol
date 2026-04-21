@@ -86,7 +86,8 @@ contract Erc20PetroCoinFacet {
         timelock = new TokenTimelock(
             IERC20(address(this)),
             recipient,
-            block.timestamp + LibErc20Enhanced.longHoldPeriod()
+            block.timestamp + LibErc20Enhanced.longHoldPeriod(),
+            amount
         );
         es.vaultLocation[vaultId] = address(timelock);
         LibErc20Enhanced.mintTreasuryTokens(amount, address(timelock));
@@ -132,7 +133,8 @@ contract Erc20PetroCoinFacet {
         timelock = new TokenTimelock(
             IERC20(address(this)),
             account,
-            block.timestamp + producerHoldPeriod
+            block.timestamp + producerHoldPeriod,
+            amount
         );
         es.vaultLocation[vaultId] = address(timelock);
 

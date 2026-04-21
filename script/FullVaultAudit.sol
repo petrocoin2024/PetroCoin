@@ -65,8 +65,65 @@ contract FullVaultAudit is Script, HelperContract {
             console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
             console.log(" ");
         }
+
+        uint256[] memory holderVaults = IVaultFactory.getHolderVaults(
+            0x44F7595019b9adC600e379B4748F46d4A896Af04
+        );
+        console.log("holder vault length ", holderVaults.length);
+        for (uint256 i = 0; i < holderVaults.length; i++) {
+            console.log("holder vault ", i);
+            console.log(holderVaults[i]);
+        }
         vm.stopBroadcast();
     }
+
+    //     vm.startBroadcast();
+    //     IVaultFactory = VaultFactoryFacet(
+    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
+    //     );
+    //     IERC20Petro = IErc20PetroCoin(
+    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
+    //     );
+
+    //     IOwners = IOwnership(
+    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
+    //     );
+    //     console.log("Diamond Owner:", IOwners.owner());
+    //     console.log("Diamond Address:", address(IVaultFactory));
+
+    //     console.log("number of vaults made:", IVaultFactory.vaultCount());
+    //     console.log("total PTCN supply:", IERC20Petro.totalSupply());
+    //     console.log(
+    //         "total treasury minted",
+    //         IERC20Petro.getMintedTreasuryTokens()
+    //     );
+    //     console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    //     for (uint256 i = 1; i <= IVaultFactory.vaultCount(); i++) {
+    //         console.log("vaultId:", i);
+    //         address vaultAddress = IVaultFactory.getVaultLocationById(i);
+    //         console.log("Vault Address:", vaultAddress);
+    //         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(i);
+    //         console.log("releaseTime:", releaseTime);
+    //         address beneficiary = IVaultFactory.getVaultBeneficiary(i);
+    //         console.log("beneficiary:", beneficiary);
+    //         uint256 vaultBalance = IVaultFactory.getVaultBalanceById(i);
+    //         console.log("vault balance:", vaultBalance);
+    //         uint256 ptcnBalance = IERC20Petro.balanceOf(beneficiary);
+    //         console.log("Beneficiary PTCN Balance:", ptcnBalance);
+    //         console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    //         console.log(" ");
+    //     }
+
+    //     uint256[] memory holderVaults = IVaultFactory.getHolderVaults(
+    //         0x44F7595019b9adC600e379B4748F46d4A896Af04
+    //     );
+    //     console.log("holder vault length ", holderVaults.length);
+    //     for (uint256 i = 0; i < holderVaults.length; i++) {
+    //         console.log("holder vault ", i);
+    //         console.log(holderVaults[i]);
+    //     }
+    //     vm.stopBroadcast();
+    // }
 }
 
 contract ReleaseVaultToken is Script, HelperContract {

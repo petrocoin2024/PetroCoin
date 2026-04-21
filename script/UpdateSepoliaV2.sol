@@ -32,25 +32,39 @@ contract UpdateSepoliaV2 is Script, HelperContract {
         // so the new version of the timelock should be available with that deployment.
         erc20V2 = new Erc20PetroCoinFacet();
         vaultFactoryV2 = new VaultFactoryFacet();
-        bytes4[] memory replaceSelectors = new bytes4[](2);
-        replaceSelectors[0] = erc20V2.mintProducerTokens.selector;
-        replaceSelectors[1] = erc20V2.mintTreasuryTokens.selector;
 
-        bytes4[] memory addSelectors = new bytes4[](1);
-        addSelectors[0] = vaultFactoryV2
+        address diamondAddress = 0x6B4a4Ac71E3B7757364637A90e82fA7b546153B9; // TODO: Replace with actual Diamond address
+
+        // Step 3: Get the IDiamondCut interface for the Diamond proxy
+        ICut = IDiamondCut(diamondAddress);
+
+        ILoupe = IDiamondLoupe(diamondAddress);
+        bytes4[] memory originalErc20Selectors = ILoupe.facetFunctionSelectors(
+            0xe26967488772F9a2a24378D1F3C155bA381CCca9
+        );
+        bytes4[] memory originalVaultFactorySelectors = ILoupe
+            .facetFunctionSelectors(0x63e84b699a9ea01893575994DAb20DC00692b1af);
+
+        bytes4[] memory vaultAddSelectors = new bytes4[](1);
+        vaultAddSelectors[0] = vaultFactoryV2
             .getVaultFractionalOwnerBalance
             .selector;
 
-        FacetCut[] memory cutV2 = new FacetCut[](2);
+        FacetCut[] memory cutV2 = new FacetCut[](3);
         cutV2[0] = FacetCut({
             facetAddress: address(erc20V2),
             action: FacetCutAction.Replace,
-            functionSelectors: replaceSelectors
+            functionSelectors: originalErc20Selectors
         });
         cutV2[1] = FacetCut({
             facetAddress: address(vaultFactoryV2),
+            action: FacetCutAction.Replace,
+            functionSelectors: originalVaultFactorySelectors
+        });
+        cutV2[2] = FacetCut({
+            facetAddress: address(vaultFactoryV2),
             action: FacetCutAction.Add,
-            functionSelectors: addSelectors
+            functionSelectors: vaultAddSelectors
         });
 
         ICut.diamondCut(cutV2, address(0x0), "");

@@ -39,7 +39,7 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         IERC20Petro.mintTreasuryTokens(address(this), 1000);
         uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
         assertEq(vaultBalance, 1000);
-        assertEq(IVaultFactory.getVaultBeneficiary(1), address(this));
+        assertEq(IVaultFactory.getVaultInitialBeneficiary(1), address(this));
         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
         uint256 longHoldPeriod = IERC20Petro.getLongHoldPeriod();
         assertEq(releaseTime, block.timestamp + longHoldPeriod);
@@ -152,7 +152,6 @@ contract TestERC20Facet is StateDeployDiamond {
         assertEq(ownerVaults.length, 1);
         assertEq(IERC20Petro.balanceOf(address(timeLockVault)), 1000);
     }
-    //todo: test ERC20 functions
 }
 
 contract TestFactoryVault is StateDeployDiamond {
@@ -173,7 +172,8 @@ contract TestFactoryVault is StateDeployDiamond {
         TokenTimelock timelock = IVaultFactory.createTokenTimelock(
             IERC20P,
             address(this),
-            block.timestamp + 100000000
+            block.timestamp + 100000000,
+            42424242
         );
 
         assertEq(IVaultFactory.vaultCount(), initialVaultCount + 1);
@@ -183,6 +183,7 @@ contract TestFactoryVault is StateDeployDiamond {
         assertEq(vaultIdArray[0], 1);
         assertEq(vaultIdArray.length, 1);
         assertEq(IVaultFactory.getVaultLocationById(1), address(timelock));
+        assertEq(timelock.balanceOf(address(this)), 42424242);
 
         TokenTimelock timelock2 = IVaultFactory.createTokenTimelock(
             IERC20P,

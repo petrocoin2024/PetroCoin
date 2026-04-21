@@ -10,7 +10,7 @@ import "../src/facets/OwnershipFacet.sol";
 import "../src/facets/Erc20PetroCoinFacet.sol";
 import "../src/Diamond.sol";
 import "../test/HelperContract.sol";
-import "../lib/forge-std/src/console.sol";
+import "../lib/forge-std/src/console2.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
 contract GetVaultBalance is Script, HelperContract {
@@ -31,43 +31,31 @@ contract GetVaultBalance is Script, HelperContract {
     string[] facetNames;
     address[] facetAddressList;
     function run() external {
-        vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
-            address(0xdCfB65CC9f69D78dDFA30f47eefD1594466fB47D)
+            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
 
-        console.log("Diamond Address:", address(IVaultFactory));
-
-        console.log("number of vaults made:", IVaultFactory.vaultCount());
+        console.log("PTC Token Address:", address(IVaultFactory));
+        uint256[] memory vaultId = IVaultFactory.getHolderVaults(
+            address(0xE44D634Db8F33d892CF6Be2910dcDe63bbEF00a2)
+        );
         console.log(
-            "beneficiary of first vault:",
-            IVaultFactory.getVaultBeneficiary(1)
+            string.concat("vault count: ", vm.toString(vaultId.length))
         );
-        uint256[] memory vaultIds = IVaultFactory.getHolderVaults(
-            address(0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD)
-        );
-
-        console.log(
-            "checking balance for account:",
-            address(0x993A040a022fB002f36E0Fb0831e5DB0050cFFcD)
-        );
-        console.log("vault #:", vaultIds.length);
-        for (uint256 i = 0; i < vaultIds.length; i++) {
-            console.log("vaultId:", vaultIds[i]);
+        for (uint256 i = 0; i < vaultId.length; i++) {
+            console.log(string.concat("vaultId: ", vm.toString(vaultId[i])));
             uint256 vaultBalance = IVaultFactory.getVaultBalanceById(
-                vaultIds[i]
+                vaultId[i]
             );
-            console.log("vaultBalance:", vaultBalance);
-            address beneficiary = IVaultFactory.getVaultBeneficiary(
-                vaultIds[i]
+            console.log(
+                string.concat("vaultBalance: ", vm.toString(vaultBalance))
             );
+            address beneficiary = IVaultFactory.getVaultBeneficiary(vaultId[i]);
             console.log("beneficiary:", beneficiary);
-            uint256 releaseTime = IVaultFactory.getVaultReleaseTime(
-                vaultIds[i]
+            uint256 releaseTime = IVaultFactory.getVaultReleaseTime(vaultId[i]);
+            console.log(
+                string.concat("releaseTime: ", vm.toString(releaseTime))
             );
-            console.log("releaseTime:", releaseTime);
         }
-
-        vm.stopBroadcast();
     }
 }

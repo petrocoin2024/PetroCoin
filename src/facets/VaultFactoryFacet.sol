@@ -10,15 +10,18 @@ contract VaultFactoryFacet {
     function createTokenTimelock(
         IERC20 token,
         address beneficiary,
-        uint256 releaseTime
+        uint256 releaseTime,
+        uint256 amountToLock
     ) public returns (TokenTimelock) {
-        return _createTokenTimelock(token, beneficiary, releaseTime);
+        return
+            _createTokenTimelock(token, beneficiary, releaseTime, amountToLock);
     }
 
     function _createTokenTimelock(
         IERC20 token,
         address beneficiary,
-        uint256 releaseTime
+        uint256 releaseTime,
+        uint256 amountToLock
     ) internal returns (TokenTimelock) {
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
@@ -30,7 +33,8 @@ contract VaultFactoryFacet {
         TokenTimelock timelock = new TokenTimelock(
             token,
             beneficiary,
-            releaseTime
+            releaseTime,
+            amountToLock
         );
         es.vaultLocation[vaultId] = address(timelock);
 
@@ -71,29 +75,31 @@ contract VaultFactoryFacet {
         return timelock.token().balanceOf(address(timelock));
     }
 
-    function getVaultBeneficiary(
+    function getVaultInitialBeneficiary(
         uint256 vaultId
     ) public view returns (address) {
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        return timelock.beneficiary();
+        return timelock.initialBeneficiary();
     }
 
     function getVaultFractionalOwnerBalance(
         uint256 vaultId,
         address fractionalOwner
-    ) public view returns (uint256) {
+    ) public view returns (uint256 balance) {
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        return timelock.distributedShares(fractionalOwner);
+        balance = timelock.balanceOf(fractionalOwner);
     }
 
-    function releaseVaultTokens(uint256 vaultId) public {
+    function releaseVaultTokens(
+        uint256 vaultId
+    ) public returns (uint256 remainingSupply) {
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        timelock.release();
+        remainingSupply = timelock.release();
     }
 }

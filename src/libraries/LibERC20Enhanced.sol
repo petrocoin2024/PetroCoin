@@ -94,6 +94,7 @@ library LibErc20Enhanced {
         erc20Storage().balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
+    //todo confirm erasing treasury token
     function mintTreasuryTokens(uint256 amount, address recipient) internal {
         require(recipient != address(0), "ERC20: mint to the zero address");
 
