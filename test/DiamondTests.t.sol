@@ -173,14 +173,47 @@ contract TestERC20Facet is StateDeployDiamond {
     }
 
     function testAllowanceAndTransferFrom() public {
-        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        console.log("Testing allowance and transferFrom...");
+
+        TokenTimelock timeLockVault = IERC20Petro.mintTreasuryTokens(
+            address(this),
+            1000
+        );
+
         address recipient = address(0x123);
+
+        uint256 longHoldPeriod = IERC20Petro.getLongHoldPeriod();
+        vm.warp(block.timestamp + longHoldPeriod + 1);
+
+        IVaultFactory.releaseVaultTokens(1);
+
+        // --- INITIAL APPROVAL ---
         IERC20Petro.approve(recipient, 500);
         assertEq(IERC20Petro.allowance(address(this), recipient), 500);
+
+        // --- INCREASE ALLOWANCE ---
+        IERC20Petro.increaseAllowance(recipient, 200);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 700);
+
+        // --- DECREASE ALLOWANCE ---
+        IERC20Petro.decreaseAllowance(recipient, 100);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 600);
+
+        // --- TRANSFER FROM ---
+        console.log(
+            "sender balance before transferFrom: %s",
+            IERC20Petro.balanceOf(address(this))
+        );
+
         vm.prank(recipient);
         IERC20Petro.transferFrom(address(this), recipient, 300);
+
         assertEq(IERC20Petro.balanceOf(recipient), 300);
-        assertEq(IERC20Petro.allowance(address(this), recipient), 200);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 300);
+
+        // --- DECREASE BELOW ZERO SHOULD REVERT ---
+        vm.expectRevert("ERC20: decreased allowance below zero");
+        IERC20Petro.decreaseAllowance(recipient, 500); // only 300 left
     }
 }
 
@@ -301,7 +334,7 @@ contract TestFactoryVault is StateDeployDiamond {
             0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         );
         assertEq(
-            vaultFactory.getVaultFractionalOwnerBalance(
+            IVaultFactory.getVaultFractionalOwnerBalance(
                 1,
                 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
             ),

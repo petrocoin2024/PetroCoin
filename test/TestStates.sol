@@ -64,7 +64,6 @@ abstract contract StateDeployDiamond is HelperContract {
 
         // deploy diamond
         diamond = new Diamond(cut0, _args);
-        console.log("Diamond deployed at: ", address(diamond));
 
         //upgrade diamond with facets
 

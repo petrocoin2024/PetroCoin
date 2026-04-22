@@ -117,4 +117,13 @@ interface IErc20PetroCoin {
     function pause() external;
     function unpause() external;
     function isPaused() external view returns (bool);
+
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) external returns (bool);
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) external returns (bool);
 }

@@ -36,3 +36,9 @@ To run full vault audit run:
 ```bash
 $forge script --chain mainnet script/FullVaultAudit.sol:FullVaultAudit --rpc-url https://eth-mainnet.g.alchemy.com/v2/API*HERE --private-key **PRIVATE_KEY -vvvv --ffi --broadcast
 ```
+
+To check coverage in an html report run:
+
+```bash
+forge coverage --ffi --report lcov --report-file /Users/metayan/Documents/PetroCoin/SmartContracts/PetroCoinUpgradeable/coverage/lcov.info
+```
