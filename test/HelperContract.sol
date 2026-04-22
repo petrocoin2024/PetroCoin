@@ -14,11 +14,12 @@ abstract contract HelperContract is IDiamond, IDiamondLoupe, Test {
         string memory _facetName
     ) internal returns (bytes4[] memory selectors) {
         //get string of contract methods
-        string[] memory cmd = new string[](4);
+        string[] memory cmd = new string[](5);
         cmd[0] = "forge";
         cmd[1] = "inspect";
-        cmd[2] = _facetName;
-        cmd[3] = "methods";
+        cmd[2] = "--json";
+        cmd[3] = _facetName;
+        cmd[4] = "methods";
         bytes memory res = vm.ffi(cmd);
         string memory st = string(res);
 

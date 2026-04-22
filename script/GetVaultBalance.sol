@@ -50,7 +50,7 @@ contract GetVaultBalance is Script, HelperContract {
             console.log(
                 string.concat("vaultBalance: ", vm.toString(vaultBalance))
             );
-            address beneficiary = IVaultFactory.getVaultBeneficiary(vaultId[i]);
+            address beneficiary = IVaultFactory.getVaultInitialBeneficiary(vaultId[i]);
             console.log("beneficiary:", beneficiary);
             uint256 releaseTime = IVaultFactory.getVaultReleaseTime(vaultId[i]);
             console.log(

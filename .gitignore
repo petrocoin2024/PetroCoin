@@ -12,3 +12,21 @@ script
 node_modules
 
 lcov.info
+
+# LCOV / genhtml coverage report output
+coverage/
+report/
+*.gcov.html
+*.func.html
+*.func-c.html
+index.html
+index-sort-f.html
+index-sort-l.html
+gcov.css
+amber.png
+emerald.png
+ruby.png
+snow.png
+glass.png
+updown.png
+cmd_line

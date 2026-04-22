@@ -3,65 +3,101 @@ pragma solidity ^0.8.26;
 
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {LibVaultFactory} from "../src/libraries/LibVaultFactory.sol";
-
-contract NewTokenTimelock {
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+contract NewTokenTimelock is ERC20 {
+    using Strings for uint256;
     IERC20 public immutable _token;
-    address public immutable _beneficiary;
     uint256 public immutable _releaseTime;
+    bool public _released;
+    address public immutable _initialBeneficiary;
 
-    constructor(IERC20 token_, address beneficiary_, uint256 releaseTime_) {
+    //add RELEASED bool
+
+    constructor(
+        IERC20 token_,
+        address beneficiary_,
+        uint256 releaseTime_,
+        uint256 valueLocked_
+    )
+        ERC20(
+            string(
+                abi.encodePacked(
+                    "Petrocoin Vault Receipt - ",
+                    releaseTime_.toString()
+                )
+            ),
+            string(abi.encodePacked("rPTCN_", releaseTime_.toString()))
+        )
+    {
         require(
             releaseTime_ > block.timestamp,
             "TokenTimelock: release time is before current time"
         );
         _token = token_;
-        _beneficiary = beneficiary_;
+        _mint(beneficiary_, valueLocked_);
         _releaseTime = releaseTime_;
+        _initialBeneficiary = beneficiary_;
     }
 
     function token() public view returns (IERC20) {
         return _token;
     }
 
-    function beneficiary() public view returns (address) {
-        return _beneficiary;
+    function isReleased() public view returns (bool) {
+        return _released;
+    }
+
+    function initialBeneficiary() public view returns (address) {
+        return _initialBeneficiary;
     }
 
     function releaseTime() public view returns (uint256) {
         return 42424242;
     }
 
-    function release() public {
+    function release(
+        address beneficiary_
+    ) public returns (uint256 remainingSupply) {
         require(
             block.timestamp >= _releaseTime,
             "TokenTimelock: current time is before release time"
         );
-
-        uint256 amount = _token.balanceOf(address(this));
-        require(amount > 0, "TokenTimelock: no tokens to release");
-
-        _token.transfer(_beneficiary, amount);
+        require(
+            balanceOf(beneficiary_) > 0,
+            "TokenTimelock: only beneficiaries can release"
+        );
+        require(!_released, "TokenTimelock: tokens already released");
+        uint256 msgSenderBalance = balanceOf(beneficiary_);
+        _burn(beneficiary_, msgSenderBalance);
+        _token.transfer(beneficiary_, msgSenderBalance);
+        if (totalSupply() == 0) {
+            _released = true;
+        }
+        remainingSupply = totalSupply();
     }
 
     function testingNewFunctionLogic() public pure returns (string memory) {
         return "new logic";
     }
 }
-
 contract VaultFactoryFacetV2 {
     //todo test as an internal function only
     function createTokenTimelock(
         IERC20 token,
         address beneficiary,
-        uint256 releaseTime
+        uint256 releaseTime,
+        uint256 amountToLock
     ) public returns (NewTokenTimelock) {
-        return _createTokenTimelock(token, beneficiary, releaseTime);
+        return
+            _createTokenTimelock(token, beneficiary, releaseTime, amountToLock);
     }
 
     function _createTokenTimelock(
         IERC20 token,
         address beneficiary,
-        uint256 releaseTime
+        uint256 releaseTime,
+        uint256 amountToLock
     ) internal returns (NewTokenTimelock) {
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
@@ -73,7 +109,8 @@ contract VaultFactoryFacetV2 {
         NewTokenTimelock timelock = new NewTokenTimelock(
             token,
             beneficiary,
-            releaseTime
+            releaseTime,
+            amountToLock
         );
         es.vaultLocation[vaultId] = address(timelock);
 
@@ -111,20 +148,32 @@ contract VaultFactoryFacetV2 {
         return timelock.token().balanceOf(address(timelock));
     }
 
-    function getVaultBeneficiary(
+    function getVaultInitialBeneficiary(
         uint256 vaultId
     ) public view returns (address) {
         NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        return timelock.beneficiary();
+        return timelock.initialBeneficiary();
     }
 
-    function releaseVaultTokens(uint256 vaultId) public {
+    function getVaultFractionalOwnerBalance(
+        uint256 vaultId,
+        address fractionalOwner
+    ) public view returns (uint256 balance) {
         NewTokenTimelock timelock = NewTokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        timelock.release();
+        balance = timelock.balanceOf(fractionalOwner);
+    }
+
+    function releaseVaultTokens(
+        uint256 vaultId
+    ) public returns (uint256 remainingSupply) {
+        NewTokenTimelock timelock = NewTokenTimelock(
+            LibVaultFactory._getVaultLocationById(vaultId)
+        );
+        remainingSupply = timelock.release(msg.sender);
     }
 
     function testingNewFunctionLogic() public pure returns (string memory) {

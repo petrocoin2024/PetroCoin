@@ -56,7 +56,7 @@ contract FullVaultAudit is Script, HelperContract {
             console.log("Vault Address:", vaultAddress);
             uint256 releaseTime = IVaultFactory.getVaultReleaseTime(i);
             console.log("releaseTime:", releaseTime);
-            address beneficiary = IVaultFactory.getVaultBeneficiary(i);
+            address beneficiary = IVaultFactory.getVaultInitialBeneficiary(i);
             console.log("beneficiary:", beneficiary);
             uint256 vaultBalance = IVaultFactory.getVaultBalanceById(i);
             console.log("vault balance:", vaultBalance);

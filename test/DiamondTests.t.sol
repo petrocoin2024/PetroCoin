@@ -3,8 +3,11 @@ pragma solidity ^0.8.26;
 
 import "../src/interfaces/IERC20.sol";
 import "./TestStates.sol";
-import "./NewVaultFactoryFacet.sol";
-
+import {
+    IERC20Errors
+} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {NotContractOwner} from "../src/libraries/LibDiamond.sol";
+import {VaultFactoryFacetV2} from "./NewVaultFactoryFacet.sol";
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
     function testOwnersTransfer() public {
         // transfer ownership
@@ -47,7 +50,7 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         VaultFactoryFacetV2 newVaultFactory = new VaultFactoryFacetV2();
         FacetCut[] memory cut = new FacetCut[](2);
 
-        bytes4[] memory replaceSelectors = new bytes4[](8);
+        bytes4[] memory replaceSelectors = new bytes4[](9);
         uint256 nonce = 0;
         bytes4[] memory addSelectors = new bytes4[](1);
         bytes4[] memory selectors = generateSelectors("VaultFactoryFacetV2");
@@ -58,7 +61,7 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         console.log("testingSelector:");
         console.logBytes4(testingNewSelector);
         bytes4 testingOldSelector = bytes4(
-            keccak256("createTokenTimelock(address,address,uint256)")
+            keccak256("createTokenTimelock(address,address,uint256,uint256)")
         );
         console.log("testingOldSelector:");
         console.logBytes4(testingOldSelector);
@@ -107,6 +110,22 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
 
         assertEq(IVaultFactoryV2.testingNewFunctionLogic(), "new logic");
     }
+
+    function test_RevertsWhenFunctionNotFound() public {
+        bytes4 fakeSelector = bytes4(keccak256("nonexistentFunction()"));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(FunctionNotFound.selector, fakeSelector)
+        );
+
+        // call diamond with unknown selector
+        (bool success, ) = address(diamond).call(
+            abi.encodeWithSelector(fakeSelector)
+        );
+        // Note: when vm.expectRevert is used with a low-level call, the
+        // cheatcode consumes the revert and `success` is reported as true.
+        success;
+    }
 }
 
 //test ERC20 Lib Facet
@@ -151,6 +170,17 @@ contract TestERC20Facet is StateDeployDiamond {
         );
         assertEq(ownerVaults.length, 1);
         assertEq(IERC20Petro.balanceOf(address(timeLockVault)), 1000);
+    }
+
+    function testAllowanceAndTransferFrom() public {
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        address recipient = address(0x123);
+        IERC20Petro.approve(recipient, 500);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 500);
+        vm.prank(recipient);
+        IERC20Petro.transferFrom(address(this), recipient, 300);
+        assertEq(IERC20Petro.balanceOf(recipient), 300);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 200);
     }
 }
 
@@ -253,7 +283,7 @@ contract TestFactoryVault is StateDeployDiamond {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ERC20InsufficientBalance.selector,
+                IERC20Errors.ERC20InsufficientBalance.selector,
                 address(this),
                 0,
                 500
@@ -265,7 +295,7 @@ contract TestFactoryVault is StateDeployDiamond {
 
         assertEq(vaultContract.balanceOf(address(this)), 500);
         vm.stopPrank();
-        vaultContract.transfer(200, 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        vaultContract.transfer(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 200);
         assertEq(vaultContract.balanceOf(address(this)), 300);
 
         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
@@ -273,6 +303,8 @@ contract TestFactoryVault is StateDeployDiamond {
         vm.warp(releaseTime + 1);
         IVaultFactory.releaseVaultTokens(1);
         assertEq(IERC20Petro.balanceOf(address(this)), 300);
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        IVaultFactory.releaseVaultTokens(1);
         assertEq(
             IERC20Petro.balanceOf(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
             700
@@ -285,7 +317,7 @@ contract TestHoldPeriods is StateDeployDiamond {
         vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LibDiamond.NotContractOwner.selector,
+                NotContractOwner.selector,
                 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
                 address(this)
             )
@@ -320,7 +352,9 @@ contract TestHoldPeriods is StateDeployDiamond {
         assertEq(IERC20Petro.totalSupply(), 1000000000);
         assertEq(IVaultFactory.vaultCount(), initialVaults + 1);
         assertEq(
-            IVaultFactory.getVaultBeneficiary(beneficiaryVaultsArray2[0]),
+            IVaultFactory.getVaultInitialBeneficiary(
+                beneficiaryVaultsArray2[0]
+            ),
             address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
         );
 
@@ -394,6 +428,7 @@ contract TestPausable is StateDeployDiamond {
         vm.expectRevert();
         IVaultFactory.releaseVaultTokens(1);
         IERC20Petro.unpause();
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         IVaultFactory.releaseVaultTokens(1);
         assertEq(
             IERC20Petro.balanceOf(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
