@@ -87,6 +87,49 @@ library LibErc20Enhanced {
         emit Transfer(sender, recipient, amount);
     }
 
+    function approve(address owner, address spender, uint256 amount) internal {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        erc20Storage().allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function transferFrom(
+        address owner,
+        address receiver,
+        uint256 amount
+    ) internal {
+        require(owner != address(0), "ERC20: transfer from the zero address");
+        require(receiver != address(0), "ERC20: transfer to the zero address");
+
+        uint256 senderBalance = erc20Storage().balances[owner];
+        require(
+            senderBalance >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+
+        uint256 currentAllowance = erc20Storage().allowances[owner][msg.sender];
+        require(
+            currentAllowance >= amount,
+            "ERC20: transfer amount exceeds allowance"
+        );
+
+        erc20Storage().balances[owner] = senderBalance - amount;
+        erc20Storage().balances[receiver] += amount;
+        unchecked {
+            erc20Storage().allowances[owner][msg.sender] =
+                currentAllowance -
+                amount;
+        }
+        emit Transfer(owner, receiver, amount);
+        emit Approval(
+            owner,
+            msg.sender,
+            erc20Storage().allowances[owner][msg.sender]
+        );
+    }
+
     function mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
@@ -124,11 +167,48 @@ library LibErc20Enhanced {
         bool paused = erc20Storage().paused;
         require(!paused, "ERC20: paused");
     }
+    function increaseAllowance(
+        address owner,
+        address spender,
+        uint256 addedValue
+    ) internal {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
 
-    //transferFrom
-    //approve
-    //increaseAllowance
-    //decreaseAllowance
-    //burn
-    //burnFrom
+        ERC20Storage storage es = erc20Storage();
+
+        uint256 currentAllowance = es.allowances[owner][spender];
+        uint256 newAllowance = currentAllowance + addedValue;
+
+        es.allowances[owner][spender] = newAllowance;
+
+        emit Approval(owner, spender, newAllowance);
+    }
+
+    function decreaseAllowance(
+        address owner,
+        address spender,
+        uint256 subtractedValue
+    ) internal {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        ERC20Storage storage es = erc20Storage();
+
+        uint256 currentAllowance = es.allowances[owner][spender];
+
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
+
+        uint256 newAllowance;
+        unchecked {
+            newAllowance = currentAllowance - subtractedValue;
+        }
+
+        es.allowances[owner][spender] = newAllowance;
+
+        emit Approval(owner, spender, newAllowance);
+    }
 }

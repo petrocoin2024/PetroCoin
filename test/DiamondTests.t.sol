@@ -297,7 +297,16 @@ contract TestFactoryVault is StateDeployDiamond {
         vm.stopPrank();
         vaultContract.transfer(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 200);
         assertEq(vaultContract.balanceOf(address(this)), 300);
-
+        uint256 fractionalOwnershipBalance = vaultContract.balanceOf(
+            0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+        );
+        assertEq(
+            vaultFactory.getVaultFractionalOwnerBalance(
+                1,
+                0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+            ),
+            fractionalOwnershipBalance
+        );
         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
 
         vm.warp(releaseTime + 1);

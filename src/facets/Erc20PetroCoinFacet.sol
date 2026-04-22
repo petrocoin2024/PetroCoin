@@ -98,6 +98,43 @@ contract Erc20PetroCoinFacet {
         LibErc20Enhanced.transfer(msg.sender, recipient, amount);
         return true;
     }
+    function transferFrom(
+        address owner,
+        address recipient,
+        uint256 amount
+    ) public returns (bool) {
+        LibErc20Enhanced.enforceNotPaused();
+
+        LibErc20Enhanced.transferFrom(owner, recipient, amount);
+
+        return true;
+    }
+
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) public returns (bool) {
+        LibErc20Enhanced.enforceNotPaused();
+
+        LibErc20Enhanced.increaseAllowance(msg.sender, spender, addedValue);
+
+        return true;
+    }
+
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) public returns (bool) {
+        LibErc20Enhanced.enforceNotPaused();
+
+        LibErc20Enhanced.decreaseAllowance(
+            msg.sender,
+            spender,
+            subtractedValue
+        );
+
+        return true;
+    }
 
     function setLongHoldPeriod(uint256 _longHoldPeriod) public {
         LibDiamond.enforceIsContractOwner();
@@ -109,6 +146,10 @@ contract Erc20PetroCoinFacet {
         LibErc20Enhanced
             .erc20Storage()
             .producerHoldPeriod = _producerHoldPeriod;
+    }
+    function approve(address spender, uint256 amount) public {
+        require(LibErc20Enhanced.balanceOf(msg.sender) >= amount);
+        LibErc20Enhanced.approve(msg.sender, spender, amount);
     }
 
     function mintProducerTokens(
