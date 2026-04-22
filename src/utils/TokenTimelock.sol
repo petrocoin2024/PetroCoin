@@ -55,19 +55,21 @@ contract TokenTimelock is ERC20 {
         return _releaseTime;
     }
 
-    function release() public returns (uint256 remainingSupply) {
+    function release(
+        address beneficiary_
+    ) public returns (uint256 remainingSupply) {
         require(
             block.timestamp >= _releaseTime,
             "TokenTimelock: current time is before release time"
         );
         require(
-            balanceOf(msg.sender) > 0,
+            balanceOf(beneficiary_) > 0,
             "TokenTimelock: only beneficiaries can release"
         );
         require(!_released, "TokenTimelock: tokens already released");
-        uint256 msgSenderBalance = balanceOf(msg.sender);
-        _burn(msg.sender, msgSenderBalance);
-        _token.transfer(msg.sender, msgSenderBalance);
+        uint256 msgSenderBalance = balanceOf(beneficiary_);
+        _burn(beneficiary_, msgSenderBalance);
+        _token.transfer(beneficiary_, msgSenderBalance);
         if (totalSupply() == 0) {
             _released = true;
         }

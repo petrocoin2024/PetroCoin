@@ -100,6 +100,6 @@ contract VaultFactoryFacet {
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
-        remainingSupply = timelock.release();
+        remainingSupply = timelock.release(msg.sender);
     }
 }

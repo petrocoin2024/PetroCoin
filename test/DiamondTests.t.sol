@@ -188,7 +188,8 @@ contract TestFactoryVault is StateDeployDiamond {
         TokenTimelock timelock2 = IVaultFactory.createTokenTimelock(
             IERC20P,
             address(this),
-            block.timestamp + 200000000
+            block.timestamp + 200000000,
+            242424242
         );
         vaultIdArray = IVaultFactory.getHolderVaults(address(this));
         assertEq(IVaultFactory.vaultCount(), initialVaultCount + 2);
@@ -196,6 +197,7 @@ contract TestFactoryVault is StateDeployDiamond {
         assertEq(vaultIdArray[1], 2);
         assertEq(vaultIdArray.length, 2);
         assertEq(IVaultFactory.getVaultLocationById(2), address(timelock2));
+        assertEq(timelock2.balanceOf(address(this)), 242424242);
     }
 
     function testTreasuryVaultLock() public {
@@ -203,11 +205,16 @@ contract TestFactoryVault is StateDeployDiamond {
 
         IERC20Petro.mintTreasuryTokens(address(this), 1000);
         uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
-
+        uint256 vaultAddressBalance = IERC20Petro.balanceOf(
+            IVaultFactory.getVaultLocationById(1)
+        );
         assertEq(vaultBalance, 1000);
-
+        assertEq(vaultAddressBalance, 1000);
+        address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
+        TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
+        assertEq(vaultContract.balanceOf(address(this)), 1000);
         assertEq(IERC20Petro.balanceOf(address(this)), 0);
-        assertEq(IVaultFactory.getVaultBeneficiary(1), address(this));
+        assertEq(IVaultFactory.getVaultInitialBeneficiary(1), address(this));
         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
         uint256 longHoldPeriod = IERC20Petro.getLongHoldPeriod();
         assertEq(releaseTime, block.timestamp + longHoldPeriod);
@@ -218,19 +225,22 @@ contract TestFactoryVault is StateDeployDiamond {
         vm.warp(releaseTime + 1);
         IVaultFactory.releaseVaultTokens(1);
         assertEq(IERC20Petro.balanceOf(address(this)), 1000);
+        assertEq(IERC20Petro.balanceOf(address(vaultContract)), 0);
+        assert(vaultContract.isReleased());
+        assertEq(vaultContract.balanceOf(address(this)), 0);
     }
 
-    function testVaultBeneficiary() public {
+    function testVaultInitialBeneficiary() public {
         IERC20Petro.mintTreasuryTokens(address(this), 1000);
         uint256 vaultBalance = IVaultFactory.getVaultBalanceById(1);
         assertEq(vaultBalance, 1000);
         assertEq(IERC20Petro.balanceOf(address(this)), 0);
-        assertEq(IVaultFactory.getVaultBeneficiary(1), address(this));
+        assertEq(IVaultFactory.getVaultInitialBeneficiary(1), address(this));
 
         address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
         TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
-        vaultContract.beneficiary();
-        assertEq(vaultContract.beneficiary(), address(this));
+        vaultContract.initialBeneficiary();
+        assertEq(vaultContract.initialBeneficiary(), address(this));
     }
 
     function testVaultDistributedShares() public {
@@ -240,16 +250,23 @@ contract TestFactoryVault is StateDeployDiamond {
         );
         address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
         TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
-        vm.expectRevert("TokenTimelock: only beneficiary can transfer");
-        vaultContract.transferFractionalOwnership(address(this), 500);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ERC20InsufficientBalance.selector,
+                address(this),
+                0,
+                500
+            )
+        );
+        vaultContract.transfer(address(this), 500);
         vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
-        vaultContract.transferFractionalOwnership(address(this), 500);
-        uint256 distributedShares = IVaultFactory
-            .getVaultFractionalOwnerBalance(1, address(this));
-        assertEq(distributedShares, 500);
+        vaultContract.transfer(address(this), 500);
+
+        assertEq(vaultContract.balanceOf(address(this)), 500);
         vm.stopPrank();
-        uint remainingShares = vaultContract.returnFractionalOwnership(200);
-        assertEq(remainingShares, 300);
+        vaultContract.transfer(200, 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        assertEq(vaultContract.balanceOf(address(this)), 300);
 
         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
 
@@ -266,7 +283,13 @@ contract TestFactoryVault is StateDeployDiamond {
 contract TestHoldPeriods is StateDeployDiamond {
     function testMintProducerTokens() public {
         vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LibDiamond.NotContractOwner.selector,
+                0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
+                address(this)
+            )
+        );
         IERC20Petro.mintProducerTokens(address(this), 1000);
         vm.stopPrank();
         assertEq(IERC20Petro.totalSupply(), 0);
@@ -284,7 +307,16 @@ contract TestHoldPeriods is StateDeployDiamond {
                 address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
             );
         assertEq(beneficiaryVaultsArray2.length, 1);
-
+        TokenTimelock vaultContract = TokenTimelock(
+            IVaultFactory.getVaultLocationById(beneficiaryVaultsArray2[0])
+        );
+        assertEq(vaultContract.balanceOf(address(this)), 0);
+        assertEq(
+            vaultContract.balanceOf(
+                address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+            ),
+            1000000000
+        );
         assertEq(IERC20Petro.totalSupply(), 1000000000);
         assertEq(IVaultFactory.vaultCount(), initialVaults + 1);
         assertEq(
@@ -297,7 +329,7 @@ contract TestHoldPeriods is StateDeployDiamond {
             1000000000
         );
         vm.startPrank(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
-        vm.expectRevert();
+        vm.expectRevert("TokenTimelock: current time is before release time");
         IVaultFactory.releaseVaultTokens(beneficiaryVaultsArray2[0]);
         assertEq(
             IERC20Petro.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
@@ -315,6 +347,14 @@ contract TestHoldPeriods is StateDeployDiamond {
             IERC20Petro.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
             1000000000
         );
+        assertEq(
+            vaultContract.balanceOf(
+                address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+            ),
+            0
+        );
+        assert(vaultContract.isReleased());
+        assertEq(vaultContract.totalSupply(), 0);
     }
 }
 
@@ -365,3 +405,4 @@ contract TestPausable is StateDeployDiamond {
 
 //TO TEST
 // NEW hold period changes the hold period of new time lock vaults
+//todo: full rPTCN tests
