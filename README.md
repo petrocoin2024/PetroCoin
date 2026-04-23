@@ -40,5 +40,5 @@ $forge script --chain mainnet script/FullVaultAudit.sol:FullVaultAudit --rpc-url
 To check coverage in an html report run:
 
 ```bash
-forge coverage --ffi --report lcov --report-file /Users/metayan/Documents/PetroCoin/SmartContracts/PetroCoinUpgradeable/coverage/lcov.info
+forge coverage --ffi --report lcov && genhtml lcov.info -o coverage && open coverage/index.html
 ```

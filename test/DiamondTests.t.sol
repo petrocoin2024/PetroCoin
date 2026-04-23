@@ -6,8 +6,19 @@ import "./TestStates.sol";
 import {
     IERC20Errors
 } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {NotContractOwner} from "../src/libraries/LibDiamond.sol";
+import {
+    NotContractOwner,
+    NoSelectorsProvidedForFacetForCut,
+    CannotAddSelectorsToZeroAddress,
+    CannotAddFunctionToDiamondThatAlreadyExists,
+    CannotReplaceFunctionsFromFacetWithZeroAddress,
+    CannotReplaceImmutableFunction,
+    CannotReplaceFunctionWithTheSameFunctionFromTheSameFacet,
+    CannotReplaceFunctionThatDoesNotExists
+} from "../src/libraries/LibDiamond.sol";
+import {stdError} from "../lib/forge-std/src/StdError.sol";
 import {VaultFactoryFacetV2} from "./NewVaultFactoryFacet.sol";
+import {FunctionNotFound} from "../src/Diamond.sol";
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
     function testOwnersTransfer() public {
         // transfer ownership
@@ -111,6 +122,51 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         assertEq(IVaultFactoryV2.testingNewFunctionLogic(), "new logic");
     }
 
+    function test_RemoveFunction() public {
+        // --- Step 1: prepare selector ---
+        bytes4 selector = bytes4(keccak256("foo()"));
+
+        // --- Step 2: add function via facet ---
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        ICut.diamondCut(cut, address(0), "");
+
+        // --- Step 3: confirm selector is registered to the erc20 facet ---
+        // We can't actually call `foo()` because the facet doesn't implement
+        // it; instead verify the diamond has the selector mapped via the
+        // loupe.
+        assertEq(ILoupe.facetAddress(selector), address(erc20));
+
+        // --- Step 4: remove function ---
+        cut[0] = FacetCut({
+            facetAddress: address(0), // must be zero for remove
+            action: IDiamond.FacetCutAction.Remove,
+            functionSelectors: selectors
+        });
+
+        ICut.diamondCut(cut, address(0), "");
+
+        // --- Step 5: confirm selector is gone from the diamond ---
+        assertEq(ILoupe.facetAddress(selector), address(0));
+
+        // Calling the removed selector should now revert with
+        // FunctionNotFound in the diamond fallback.
+        vm.expectRevert(
+            abi.encodeWithSelector(FunctionNotFound.selector, selector)
+        );
+
+        address(diamond).call(abi.encodeWithSelector(selector));
+    }
+
     function test_RevertsWhenFunctionNotFound() public {
         bytes4 fakeSelector = bytes4(keccak256("nonexistentFunction()"));
 
@@ -126,9 +182,201 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         // cheatcode consumes the revert and `success` is reported as true.
         success;
     }
-}
+    function test_Revert_NoSelectorsProvided() public {
+        bytes4[] memory selectors = new bytes4[](0);
 
-//test ERC20 Lib Facet
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(1),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NoSelectorsProvidedForFacetForCut.selector,
+                address(1)
+            )
+        );
+        ICut.diamondCut(cut, address(0x0), "");
+    }
+
+    function test_Revert_AddToZeroAddress() public {
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = bytes4(keccak256("foo()"));
+
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(0),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotAddSelectorsToZeroAddress.selector,
+                selectors
+            )
+        );
+        ICut.diamondCut(cut, address(0), "");
+    }
+
+    function test_Revert_AddExistingFunction() public {
+        // Use a selector that is NOT already registered on the diamond,
+        // otherwise the first `diamondCut` below reverts before we can
+        // exercise the "add again" path.
+        bytes4 selector = bytes4(keccak256("brandNewFunction()"));
+
+        // first add
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        ICut.diamondCut(cut, address(0), "");
+
+        // try adding again
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotAddFunctionToDiamondThatAlreadyExists.selector,
+                selector
+            )
+        );
+
+        ICut.diamondCut(cut, address(0), "");
+    }
+
+    function test_Revert_ReplaceWithZeroAddress() public {
+        bytes4 selector = bytes4(keccak256("foo()"));
+
+        // first add
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        ICut.diamondCut(cut, address(0), "");
+
+        // attempt replace with zero address
+        cut[0] = FacetCut({
+            facetAddress: address(0),
+            action: IDiamond.FacetCutAction.Replace,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotReplaceFunctionsFromFacetWithZeroAddress.selector,
+                selectors
+            )
+        );
+
+        ICut.diamondCut(cut, address(0), "");
+    }
+    function test_Revert_ReplaceImmutableFunction() public {
+        // In LibDiamond, `address(this)` (the diamond itself) is treated as
+        // the marker for "immutable" selectors — i.e. selectors registered
+        // with the diamond as their facet address. To exercise the
+        // `CannotReplaceImmutableFunction` branch we must first register a
+        // selector that way, then try to Replace it with a different
+        // (real) facet address.
+        bytes4 selector = bytes4(keccak256("immutableFoo()"));
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        FacetCut[] memory addCut = new IDiamondCut.FacetCut[](1);
+        addCut[0] = FacetCut({
+            facetAddress: address(diamond),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+        ICut.diamondCut(addCut, address(0), "");
+
+        // Now attempt to Replace the immutable selector with another
+        // facet; this must revert with CannotReplaceImmutableFunction.
+        FacetCut[] memory replaceCut = new IDiamondCut.FacetCut[](1);
+        replaceCut[0] = FacetCut({
+            facetAddress: address(dCutFacet),
+            action: IDiamond.FacetCutAction.Replace,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotReplaceImmutableFunction.selector,
+                selector
+            )
+        );
+
+        ICut.diamondCut(replaceCut, address(0), "");
+    }
+
+    function test_Revert_ReplaceSameFunctionSameFacet() public {
+        bytes4 selector = bytes4(keccak256("foo()"));
+
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        // add
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: selectors
+        });
+
+        ICut.diamondCut(cut, address(0), "");
+
+        // replace with same facet
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Replace,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotReplaceFunctionWithTheSameFunctionFromTheSameFacet
+                    .selector,
+                selector
+            )
+        );
+        ICut.diamondCut(cut, address(0), "");
+    }
+
+    function test_Revert_ReplaceNonexistentFunction() public {
+        bytes4 selector = bytes4(keccak256("doesNotExist()"));
+
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = selector;
+
+        FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+        cut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Replace,
+            functionSelectors: selectors
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CannotReplaceFunctionThatDoesNotExists.selector,
+                selector
+            )
+        );
+
+        ICut.diamondCut(cut, address(0), "");
+    }
+}
 
 contract TestERC20Facet is StateDeployDiamond {
     function testERC20FacetInitialized() public {
