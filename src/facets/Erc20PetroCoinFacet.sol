@@ -8,7 +8,26 @@ import "./VaultFactoryFacet.sol";
 
 //TODO: transfer tokenLock creation from mintProducerTokens to the vault factory
 contract Erc20PetroCoinFacet {
-    //!force ownership to initialize
+    event TokenDistribution(
+        uint256 indexed tokensMinted,
+        uint256 indexed estimatedValue,
+        AssetCategory indexed assetCategory
+    );
+
+    enum AssetCategory {
+        Royalties,
+        WorkingInterest,
+        PowerGeneration,
+        Services,
+        Infrastructure,
+        ConductiveAndRareEarthMetals,
+        PreciousMetals,
+        RareArt,
+        Collectibles,
+        PreciousStones,
+        OneOfAKind
+    }
+
     function initErc20PetroCoin(
         string memory _name,
         string memory _symbol,
@@ -155,6 +174,16 @@ contract Erc20PetroCoinFacet {
 
     function mintProducerTokens(
         address account,
+        uint256 amount,
+        uint256 estimatedValue,
+        LibErc20Enhanced.AssetCategory assetCategory
+    ) public returns (TokenTimelock timelock) {
+        mintProducerTokens(account, amount);
+        emit TokenDistribution(amount, estimatedValue, assetCategory);
+    }
+
+    function mintProducerTokens(
+        address account,
         uint256 amount
     ) public returns (TokenTimelock timelock) {
         LibErc20Enhanced.enforceNotPaused();
@@ -180,7 +209,7 @@ contract Erc20PetroCoinFacet {
         );
         es.vaultLocation[vaultId] = address(timelock);
 
-        LibErc20Enhanced.mint(address(timelock), amount);
+        LibErc20Enhanced.mint(address(timelock), amount, assetCategory);
     }
     function pause() public {
         LibDiamond.enforceIsContractOwner();

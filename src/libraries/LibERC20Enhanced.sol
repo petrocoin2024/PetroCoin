@@ -130,13 +130,14 @@ library LibErc20Enhanced {
         );
     }
 
-    function mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
+    function mint(uint256 amount, address recipient) internal {
+        require(recipient != address(0), "ERC20: mint to the zero address");
 
         erc20Storage().totalSupply += amount;
-        erc20Storage().balances[account] += amount;
-        emit Transfer(address(0), account, amount);
+        erc20Storage().balances[recipient] += amount;
+        emit Transfer(address(0), recipient, amount);
     }
+
     //todo confirm erasing treasury token
     function mintTreasuryTokens(uint256 amount, address recipient) internal {
         require(recipient != address(0), "ERC20: mint to the zero address");

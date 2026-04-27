@@ -19,7 +19,13 @@ import {
 import {stdError} from "../lib/forge-std/src/StdError.sol";
 import {VaultFactoryFacetV2} from "./NewVaultFactoryFacet.sol";
 import {FunctionNotFound} from "../src/Diamond.sol";
+import {AssetCategory} from "../src/facets/Erc20PetroCoinFacet.sol";
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
+    event TokenDistribution(
+        uint256 indexed tokensMinted,
+        uint256 indexed estimatedValue,
+        AssetCategory indexed assetCategory
+    );
     function testOwnersTransfer() public {
         // transfer ownership
         IOwners.transferOwnership(address(0x0));
@@ -555,9 +561,21 @@ contract TestFactoryVault is StateDeployDiamond {
     }
 
     function testVaultDistributedShares() public {
-        IERC20Petro.mintProducerTokens(
+        AssetCategory category = AssetCategory.ConductiveAndRareEarthMetals;
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(
+            address(0),
             address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
             1000
+        );
+
+        vm.expectEmit(true, true, true, false);
+        emit TokenDistribution(1000, 1000000, category);
+        IERC20Petro.mintProducerTokens(
+            address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
+            1000,
+            1000000,
+            category
         );
         address vaultContractAddress = IVaultFactory.getVaultLocationById(1);
         TokenTimelock vaultContract = TokenTimelock(vaultContractAddress);
