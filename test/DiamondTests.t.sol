@@ -19,12 +19,12 @@ import {
 import {stdError} from "../lib/forge-std/src/StdError.sol";
 import {VaultFactoryFacetV2} from "./NewVaultFactoryFacet.sol";
 import {FunctionNotFound} from "../src/Diamond.sol";
-import {AssetCategory} from "../src/facets/Erc20PetroCoinFacet.sol";
+import "../src/libraries/LibERC20Enhanced.sol";
 contract TestDeployDiamondWithOwners is StateDeployDiamond {
     event TokenDistribution(
         uint256 indexed tokensMinted,
         uint256 indexed estimatedValue,
-        AssetCategory indexed assetCategory
+        LibErc20Enhanced.AssetCategory indexed assetCategory
     );
     function testOwnersTransfer() public {
         // transfer ownership
@@ -385,6 +385,12 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
 }
 
 contract TestERC20Facet is StateDeployDiamond {
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event TokenRedemption(
+        uint256 indexed tokensBurned,
+        uint256 indexed redeemedValue,
+        LibErc20Enhanced.AssetCategory indexed assetCategory
+    );
     function testERC20FacetInitialized() public {
         assertEq(IERC20Petro.name(), "PetroCoin");
         assertEq(IERC20Petro.symbol(), "PC");
@@ -469,6 +475,46 @@ contract TestERC20Facet is StateDeployDiamond {
         vm.expectRevert("ERC20: decreased allowance below zero");
         IERC20Petro.decreaseAllowance(recipient, 500); // only 300 left
     }
+
+    function testTokenRedemption() public {
+        vm.startPrank(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NotContractOwner.selector,
+                0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
+                address(this)
+            )
+        );
+        IERC20Petro.tokenRedemption(
+            address(this),
+            1000,
+            12345,
+            LibErc20Enhanced.AssetCategory.PreciousStones
+        );
+        vm.stopPrank();
+
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        uint256 longHoldPeriod = IERC20Petro.getLongHoldPeriod();
+        vm.warp(block.timestamp + longHoldPeriod + 1);
+        IVaultFactory.releaseVaultTokens(1);
+
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(this), address(0), 500);
+        vm.expectEmit(true, true, true, false);
+        emit TokenRedemption(
+            500,
+            12345,
+            LibErc20Enhanced.AssetCategory.PreciousStones
+        );
+        IERC20Petro.tokenRedemption(
+            address(this),
+            500,
+            12345,
+            LibErc20Enhanced.AssetCategory.PreciousStones
+        );
+
+        assertEq(IERC20Petro.balanceOf(address(this)), 500);
+    }
 }
 
 contract TestFactoryVault is StateDeployDiamond {
@@ -479,6 +525,13 @@ contract TestFactoryVault is StateDeployDiamond {
     //     assertEq(IVaultFactory.vaultCount(), 0);
     //     assertTrue(IVaultFactory.isInitialized());
     // }
+    event TokenDistribution(
+        uint256 indexed tokensMinted,
+        uint256 indexed estimatedValue,
+        LibErc20Enhanced.AssetCategory indexed assetCategory
+    );
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
     function testVaultCreation() public {
         //create token timelock
@@ -561,7 +614,9 @@ contract TestFactoryVault is StateDeployDiamond {
     }
 
     function testVaultDistributedShares() public {
-        AssetCategory category = AssetCategory.ConductiveAndRareEarthMetals;
+        LibErc20Enhanced.AssetCategory category = LibErc20Enhanced
+            .AssetCategory
+            .ConductiveAndRareEarthMetals;
         vm.expectEmit(true, true, false, true);
         emit Transfer(
             address(0),
@@ -630,7 +685,12 @@ contract TestHoldPeriods is StateDeployDiamond {
                 address(this)
             )
         );
-        IERC20Petro.mintProducerTokens(address(this), 1000);
+        IERC20Petro.mintProducerTokens(
+            address(this),
+            1000,
+            1000000,
+            LibErc20Enhanced.AssetCategory.ConductiveAndRareEarthMetals
+        );
         vm.stopPrank();
         assertEq(IERC20Petro.totalSupply(), 0);
         uint256 initialVaults = IVaultFactory.vaultCount();
@@ -640,7 +700,9 @@ contract TestHoldPeriods is StateDeployDiamond {
         assertEq(beneficiaryVaultsArray.length, 0);
         IERC20Petro.mintProducerTokens(
             address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8),
-            1000000000
+            1000000000,
+            12345,
+            LibErc20Enhanced.AssetCategory.PreciousStones
         );
         uint256[] memory beneficiaryVaultsArray2 = IVaultFactory
             .getHolderVaults(

@@ -25,6 +25,19 @@ library LibErc20Enhanced {
         uint256 value
     );
 
+    enum AssetCategory {
+        Royalties,
+        WorkingInterest,
+        PowerGeneration,
+        Services,
+        Infrastructure,
+        ConductiveAndRareEarthMetals,
+        PreciousMetals,
+        RareArt,
+        Collectibles,
+        PreciousStones,
+        OneOfAKind
+    }
     event Paused(address account, uint256 time);
     event Unpaused(address account, uint256 time);
 
@@ -211,5 +224,15 @@ library LibErc20Enhanced {
         es.allowances[owner][spender] = newAllowance;
 
         emit Approval(owner, spender, newAllowance);
+    }
+    function burn(uint256 amount, address account) internal {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        uint256 accountBalance = erc20Storage().balances[account];
+        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+        erc20Storage().balances[account] = accountBalance - amount;
+        erc20Storage().totalSupply -= amount;
+
+        emit Transfer(account, address(0), amount);
     }
 }

@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8.26;
 import "../facets/VaultFactoryFacet.sol";
+import "../libraries/LibERC20Enhanced.sol";
 /**
  * @dev Interface of the ERC-20 standard as defined in the ERC.
  */
@@ -10,22 +11,14 @@ interface IErc20PetroCoin {
     event TokenDistribution(
         uint256 indexed tokensMinted,
         uint256 indexed estimatedValue,
-        AssetCategory indexed assetCategory
+        LibErc20Enhanced.AssetCategory indexed assetCategory
+    );
+    event TokenRedemption(
+        uint256 indexed tokensBurned,
+        uint256 indexed redeemedValue,
+        LibErc20Enhanced.AssetCategory indexed assetCategory
     );
 
-    enum AssetCategory {
-        Royalties,
-        WorkingInterest,
-        PowerGeneration,
-        Services,
-        Infrastructure,
-        ConductiveAndRareEarthMetals,
-        PreciousMetals,
-        RareArt,
-        Collectibles,
-        PreciousStones,
-        OneOfAKind
-    }
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).
@@ -127,13 +120,9 @@ interface IErc20PetroCoin {
     function setProducerHoldPeriod(uint256 _producerHoldPeriod) external;
     function mintProducerTokens(
         address account,
-        uint256 amount
-    ) external returns (TokenTimelock timelock);
-    function mintProducerTokens(
-        address account,
         uint256 amount,
         uint256 estimatedValue,
-        AssetCategory assetCategory
+        LibErc20Enhanced.AssetCategory assetCategory
     ) external returns (TokenTimelock timelock);
     function mintTreasuryTokens(
         address recipient,
@@ -151,4 +140,10 @@ interface IErc20PetroCoin {
         address spender,
         uint256 subtractedValue
     ) external returns (bool);
+    function tokenRedemption(
+        address redeemingAccount,
+        uint256 amount,
+        uint256 redeemedValue,
+        LibErc20Enhanced.AssetCategory assetCategory
+    ) external;
 }

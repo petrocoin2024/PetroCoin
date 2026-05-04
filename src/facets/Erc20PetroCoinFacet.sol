@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {LibErc20Enhanced} from "../libraries/LibERC20Enhanced.sol";
+import "../libraries/LibERC20Enhanced.sol";
 import {LibDiamond} from "../libraries/LibDiamond.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import "./VaultFactoryFacet.sol";
@@ -11,22 +11,14 @@ contract Erc20PetroCoinFacet {
     event TokenDistribution(
         uint256 indexed tokensMinted,
         uint256 indexed estimatedValue,
-        AssetCategory indexed assetCategory
+        LibErc20Enhanced.AssetCategory indexed assetCategory
     );
 
-    enum AssetCategory {
-        Royalties,
-        WorkingInterest,
-        PowerGeneration,
-        Services,
-        Infrastructure,
-        ConductiveAndRareEarthMetals,
-        PreciousMetals,
-        RareArt,
-        Collectibles,
-        PreciousStones,
-        OneOfAKind
-    }
+    event TokenRedemption(
+        uint256 indexed tokensBurned,
+        uint256 indexed redeemedValue,
+        LibErc20Enhanced.AssetCategory indexed assetCategory
+    );
 
     function initErc20PetroCoin(
         string memory _name,
@@ -185,7 +177,7 @@ contract Erc20PetroCoinFacet {
     function mintProducerTokens(
         address account,
         uint256 amount
-    ) public returns (TokenTimelock timelock) {
+    ) internal returns (TokenTimelock timelock) {
         LibErc20Enhanced.enforceNotPaused();
         LibDiamond.enforceIsContractOwner();
         uint256 producerHoldPeriod = LibErc20Enhanced.producerHoldPeriod();
@@ -209,7 +201,7 @@ contract Erc20PetroCoinFacet {
         );
         es.vaultLocation[vaultId] = address(timelock);
 
-        LibErc20Enhanced.mint(address(timelock), amount, assetCategory);
+        LibErc20Enhanced.mint(amount, address(timelock));
     }
     function pause() public {
         LibDiamond.enforceIsContractOwner();
@@ -222,6 +214,22 @@ contract Erc20PetroCoinFacet {
 
     function isPaused() public view returns (bool) {
         return LibErc20Enhanced.erc20Storage().paused;
+    }
+
+    function tokenRedemption(
+        address redeemingAccount,
+        uint256 amount,
+        uint256 redeemedValue,
+        LibErc20Enhanced.AssetCategory assetCategory
+    ) public {
+        LibErc20Enhanced.enforceNotPaused();
+        LibDiamond.enforceIsContractOwner();
+        require(
+            LibErc20Enhanced.balanceOf(redeemingAccount) >= amount,
+            "ERC20: burn amount exceeds balance"
+        );
+        LibErc20Enhanced.burn(amount, redeemingAccount);
+        emit TokenRedemption(amount, redeemedValue, assetCategory);
     }
     //burnTreasureryToken
     //          burns tokens from the treasury
