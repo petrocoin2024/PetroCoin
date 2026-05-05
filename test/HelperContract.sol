@@ -13,7 +13,24 @@ abstract contract HelperContract is IDiamond, IDiamondLoupe, Test {
     function generateSelectors(
         string memory _facetName
     ) internal returns (bytes4[] memory selectors) {
-        //get string of contract methods
+        // Read from pre-built artifact to avoid concurrent forge inspect races.
+        // Artifact path follows: out/<ContractName>.sol/<ContractName>.json
+        string memory artifactPath = string(
+            abi.encodePacked("out/", _facetName, ".sol/", _facetName, ".json")
+        );
+
+        if (vm.isFile(artifactPath)) {
+            string memory json = vm.readFile(artifactPath);
+            string[] memory sigs = vm.parseJsonKeys(json, ".methodIdentifiers");
+            selectors = new bytes4[](sigs.length);
+            for (uint256 i; i < sigs.length; i++) {
+                selectors[i] = bytes4(keccak256(bytes(sigs[i])));
+            }
+            return selectors;
+        }
+
+        // Fallback for contracts whose source file name differs from the contract
+        // name (e.g. VaultFactoryFacetV2 lives in NewVaultFactoryFacet.sol).
         string[] memory cmd = new string[](5);
         cmd[0] = "forge";
         cmd[1] = "inspect";
@@ -23,7 +40,6 @@ abstract contract HelperContract is IDiamond, IDiamondLoupe, Test {
         bytes memory res = vm.ffi(cmd);
         string memory st = string(res);
 
-        // extract function signatures and take first 4 bytes of keccak
         strings.slice memory s = st.toSlice();
         strings.slice memory delim = ":".toSlice();
         strings.slice memory delim2 = ",".toSlice();

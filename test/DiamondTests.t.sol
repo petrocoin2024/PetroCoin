@@ -2,11 +2,13 @@
 pragma solidity ^0.8.26;
 
 import "../src/interfaces/IERC20.sol";
+import "../src/interfaces/IERC165.sol";
 import "./TestStates.sol";
 import {
     IERC20Errors
 } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {
+    LibDiamond,
     NotContractOwner,
     NoSelectorsProvidedForFacetForCut,
     CannotAddSelectorsToZeroAddress,
@@ -381,6 +383,62 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         );
 
         ICut.diamondCut(cut, address(0), "");
+    }
+
+    function testDiamondCut_AddReplaceRemoveInOneCall() public {
+        bytes4 selectorToReplace = bytes4(keccak256("legacyFunctionA()"));
+        bytes4 selectorToRemove  = bytes4(keccak256("legacyFunctionB()"));
+        bytes4 selectorToAdd     = bytes4(keccak256("newFunctionC()"));
+
+        // Register the two pre-existing selectors so Replace/Remove have targets
+        bytes4[] memory setupSels = new bytes4[](2);
+        setupSels[0] = selectorToReplace;
+        setupSels[1] = selectorToRemove;
+        FacetCut[] memory setupCut = new FacetCut[](1);
+        setupCut[0] = FacetCut({
+            facetAddress: address(erc20),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: setupSels
+        });
+        ICut.diamondCut(setupCut, address(0), "");
+
+        assertEq(ILoupe.facetAddress(selectorToReplace), address(erc20));
+        assertEq(ILoupe.facetAddress(selectorToRemove),  address(erc20));
+        assertEq(ILoupe.facetAddress(selectorToAdd),     address(0));
+
+        // Single diamondCut call containing Add + Replace + Remove
+        FacetCut[] memory multiCut = new FacetCut[](3);
+
+        bytes4[] memory addSels = new bytes4[](1);
+        addSels[0] = selectorToAdd;
+        multiCut[0] = FacetCut({
+            facetAddress: address(dLoupe),
+            action: IDiamond.FacetCutAction.Add,
+            functionSelectors: addSels
+        });
+
+        bytes4[] memory replaceSels = new bytes4[](1);
+        replaceSels[0] = selectorToReplace;
+        multiCut[1] = FacetCut({
+            facetAddress: address(dLoupe),
+            action: IDiamond.FacetCutAction.Replace,
+            functionSelectors: replaceSels
+        });
+
+        bytes4[] memory removeSels = new bytes4[](1);
+        removeSels[0] = selectorToRemove;
+        multiCut[2] = FacetCut({
+            facetAddress: address(0),
+            action: IDiamond.FacetCutAction.Remove,
+            functionSelectors: removeSels
+        });
+
+        ICut.diamondCut(multiCut, address(0), "");
+
+        // All three actions must be reflected atomically in a single transaction
+        assertEq(ILoupe.facetAddress(selectorToAdd),     address(dLoupe)); // added
+        assertEq(ILoupe.facetAddress(selectorToReplace), address(dLoupe)); // replaced
+        assertEq(ILoupe.facetAddress(selectorToRemove),  address(0));      // removed
     }
 }
 
@@ -811,3 +869,211 @@ contract TestPausable is StateDeployDiamond {
 //TO TEST
 // NEW hold period changes the hold period of new time lock vaults
 //todo: full rPTCN tests
+
+// ─── Vault factory edge cases ────────────────────────────────────────────────
+
+contract TestVaultEdgeCases is StateDeployDiamond {
+    function testReleaseVault_RevertsIfCallerAlreadyReleased() public {
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+        vm.warp(releaseTime + 1);
+
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(IERC20Petro.balanceOf(address(this)), 1000);
+
+        // receipt tokens are now burned — the caller has no shares left
+        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        IVaultFactory.releaseVaultTokens(1);
+    }
+
+    function testReleaseVault_RevertsIfCallerHasNoReceiptTokens() public {
+        IERC20Petro.mintTreasuryTokens(address(this), 1000);
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+        vm.warp(releaseTime + 1);
+
+        vm.prank(address(0xdead));
+        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        IVaultFactory.releaseVaultTokens(1);
+    }
+
+    function testReleaseVault_ReceiptTransferGrantsReleaseRight() public {
+        address alice = address(0xA1ce);
+        address bob   = address(0xB0b0);
+
+        IERC20Petro.mintTreasuryTokens(alice, 1000);
+        TokenTimelock vault = TokenTimelock(IVaultFactory.getVaultLocationById(1));
+
+        vm.prank(alice);
+        vault.transfer(bob, 1000);
+
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+        vm.warp(releaseTime + 1);
+
+        // alice transferred away all her receipt tokens and can no longer release
+        vm.prank(alice);
+        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        IVaultFactory.releaseVaultTokens(1);
+
+        // bob received the receipt tokens and is now entitled to release
+        vm.prank(bob);
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(IERC20Petro.balanceOf(bob), 1000);
+    }
+
+    function testReleaseVault_PartialReleaseReducesVaultBalance() public {
+        address alice = address(0xA1ce);
+        address bob   = address(0xB0b0);
+
+        IERC20Petro.mintTreasuryTokens(alice, 1000);
+        TokenTimelock vault = TokenTimelock(IVaultFactory.getVaultLocationById(1));
+
+        vm.prank(alice);
+        vault.transfer(bob, 400); // alice keeps 600, bob gets 400
+
+        assertEq(IVaultFactory.getVaultBalanceById(1), 1000);
+
+        uint256 releaseTime = IVaultFactory.getVaultReleaseTime(1);
+        vm.warp(releaseTime + 1);
+
+        // alice releases her 600-token share
+        vm.prank(alice);
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(IERC20Petro.balanceOf(alice), 600);
+        assertEq(IVaultFactory.getVaultBalanceById(1), 400);
+        assertFalse(vault.isReleased());
+
+        // bob releases his 400-token share
+        vm.prank(bob);
+        IVaultFactory.releaseVaultTokens(1);
+        assertEq(IERC20Petro.balanceOf(bob), 400);
+        assertEq(IVaultFactory.getVaultBalanceById(1), 0);
+        assertTrue(vault.isReleased());
+    }
+}
+
+// ─── Approve edge cases ──────────────────────────────────────────────────────
+
+contract TestApproveEdgeCases is StateDeployDiamond {
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    function _mintAndRelease(uint256 amount) internal {
+        IERC20Petro.mintTreasuryTokens(address(this), amount);
+        uint256 id = IVaultFactory.vaultCount();
+        vm.warp(IVaultFactory.getVaultReleaseTime(id) + 1);
+        IVaultFactory.releaseVaultTokens(id);
+    }
+
+    function testApprove_RevertsIfInsufficientBalance() public {
+        // Non-standard: approve enforces caller has sufficient balance
+        address spender = address(0x123);
+        vm.expectRevert();
+        IERC20Petro.approve(spender, 500); // caller has 0 tokens
+    }
+
+    function testApprove_OverwritesExistingAllowance() public {
+        _mintAndRelease(1000);
+        address spender = address(0x123);
+        IERC20Petro.approve(spender, 500);
+        assertEq(IERC20Petro.allowance(address(this), spender), 500);
+
+        // Second approve replaces the allowance, not adds to it
+        IERC20Petro.approve(spender, 200);
+        assertEq(IERC20Petro.allowance(address(this), spender), 200);
+    }
+
+    function testApprove_SetToZeroRevokesAllowance() public {
+        _mintAndRelease(1000);
+        address spender = address(0x123);
+        IERC20Petro.approve(spender, 500);
+        IERC20Petro.approve(spender, 0);
+        assertEq(IERC20Petro.allowance(address(this), spender), 0);
+    }
+
+    function testApprove_EmitsApprovalEvent() public {
+        _mintAndRelease(1000);
+        address spender = address(0x123);
+        vm.expectEmit(true, true, false, true);
+        emit Approval(address(this), spender, 500);
+        IERC20Petro.approve(spender, 500);
+    }
+
+    function testTransferFrom_EmitsApprovalEventAfterAllowanceUpdate() public {
+        _mintAndRelease(1000);
+
+        address spender = address(0x456);
+        IERC20Petro.approve(spender, 500);
+
+        // transferFrom must emit Approval with the updated (reduced) allowance
+        vm.expectEmit(true, true, false, true);
+        emit Approval(address(this), spender, 200); // 500 - 300 = 200
+        vm.prank(spender);
+        IERC20Petro.transferFrom(address(this), spender, 300);
+
+        assertEq(IERC20Petro.allowance(address(this), spender), 200);
+    }
+}
+
+// ─── supportsInterface ───────────────────────────────────────────────────────
+
+// Registers interface IDs in diamond storage via delegatecall during diamondCut init
+contract DiamondInterfaceInit {
+    function init(bytes4[] calldata interfaceIds) external {
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        for (uint256 i; i < interfaceIds.length; i++) {
+            ds.supportedInterfaces[interfaceIds[i]] = true;
+        }
+    }
+}
+
+contract TestSupportsInterface is StateDeployDiamond {
+    // ERC-165: bytes4(keccak256("supportsInterface(bytes4)"))
+    bytes4 constant IERC165_ID        = 0x01ffc9a7;
+    // EIP-2535 DiamondLoupe: XOR of its four function selectors (per the standard)
+    bytes4 constant IDIAMOND_LOUPE_ID = 0x48e2b093;
+    // IDiamondCut: diamondCut((address,uint8,bytes4[])[],address,bytes)
+    bytes4 constant IDIAMOND_CUT_ID   = 0x1f931c1c;
+
+    // supportsInterface lives on DiamondLoupeFacet which implements IERC165,
+    // but IDiamondLoupe does not declare it — cast through IERC165 directly.
+    IERC165 internal ISupports;
+
+    function setUp() public override {
+        super.setUp();
+        ISupports = IERC165(address(diamond));
+    }
+
+    function testSupportsInterface_UnregisteredReturnsFalse() public {
+        // Nothing sets supportedInterfaces during setUp, so all return false
+        assertFalse(ISupports.supportsInterface(IERC165_ID));
+        assertFalse(ISupports.supportsInterface(IDIAMOND_LOUPE_ID));
+        assertFalse(ISupports.supportsInterface(IDIAMOND_CUT_ID));
+        assertFalse(ISupports.supportsInterface(0xdeadbeef));
+    }
+
+    function testSupportsInterface_ReturnsTrueAfterRegistration() public {
+        DiamondInterfaceInit initContract = new DiamondInterfaceInit();
+
+        bytes4[] memory ids = new bytes4[](2);
+        ids[0] = IERC165_ID;
+        ids[1] = IDIAMOND_LOUPE_ID;
+
+        // Empty FacetCut array + init contract: runs the delegatecall without
+        // modifying any selectors, just populating supportedInterfaces
+        FacetCut[] memory emptyCuts = new FacetCut[](0);
+        ICut.diamondCut(
+            emptyCuts,
+            address(initContract),
+            abi.encodeWithSelector(DiamondInterfaceInit.init.selector, ids)
+        );
+
+        assertTrue(ISupports.supportsInterface(IERC165_ID));
+        assertTrue(ISupports.supportsInterface(IDIAMOND_LOUPE_ID));
+        assertFalse(ISupports.supportsInterface(IDIAMOND_CUT_ID)); // not registered
+        assertFalse(ISupports.supportsInterface(0xdeadbeef));
+    }
+
+    function testSupportsInterface_RandomBytesAlwaysFalse() public {
+        assertFalse(ISupports.supportsInterface(0xffffffff));
+        assertFalse(ISupports.supportsInterface(bytes4(0)));
+    }
+}
