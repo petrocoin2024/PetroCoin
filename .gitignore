@@ -2,6 +2,9 @@
 cache/
 out/
 
+
+x-ray/
+
 # Ignores development broadcast logs
 broadcast/
 script/

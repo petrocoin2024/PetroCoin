@@ -77,23 +77,17 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         bytes4 testingNewSelector = bytes4(
             keccak256("testingNewFunctionLogic()")
         );
-        console.log("testingSelector:");
-        console.logBytes4(testingNewSelector);
+
         bytes4 testingOldSelector = bytes4(
             keccak256("createTokenTimelock(address,address,uint256,uint256)")
         );
-        console.log("testingOldSelector:");
-        console.logBytes4(testingOldSelector);
 
         bytes4 testSelectorFunction = VaultFactoryFacetV2
             .getHolderVaults
             .selector;
-        console.log("testSelectorFunction:");
-        console.logBytes4(testSelectorFunction);
-        console.log("selectors length: %s", selectors.length);
+
         for (uint i = 0; i < selectors.length; i++) {
             bytes4 log = (selectors[i]);
-            console.logBytes4(log);
             if (log != 0x261cfdb6) {
                 replaceSelectors[nonce] = log;
                 nonce++;
@@ -387,8 +381,8 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
 
     function testDiamondCut_AddReplaceRemoveInOneCall() public {
         bytes4 selectorToReplace = bytes4(keccak256("legacyFunctionA()"));
-        bytes4 selectorToRemove  = bytes4(keccak256("legacyFunctionB()"));
-        bytes4 selectorToAdd     = bytes4(keccak256("newFunctionC()"));
+        bytes4 selectorToRemove = bytes4(keccak256("legacyFunctionB()"));
+        bytes4 selectorToAdd = bytes4(keccak256("newFunctionC()"));
 
         // Register the two pre-existing selectors so Replace/Remove have targets
         bytes4[] memory setupSels = new bytes4[](2);
@@ -403,8 +397,8 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         ICut.diamondCut(setupCut, address(0), "");
 
         assertEq(ILoupe.facetAddress(selectorToReplace), address(erc20));
-        assertEq(ILoupe.facetAddress(selectorToRemove),  address(erc20));
-        assertEq(ILoupe.facetAddress(selectorToAdd),     address(0));
+        assertEq(ILoupe.facetAddress(selectorToRemove), address(erc20));
+        assertEq(ILoupe.facetAddress(selectorToAdd), address(0));
 
         // Single diamondCut call containing Add + Replace + Remove
         FacetCut[] memory multiCut = new FacetCut[](3);
@@ -436,9 +430,9 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         ICut.diamondCut(multiCut, address(0), "");
 
         // All three actions must be reflected atomically in a single transaction
-        assertEq(ILoupe.facetAddress(selectorToAdd),     address(dLoupe)); // added
+        assertEq(ILoupe.facetAddress(selectorToAdd), address(dLoupe)); // added
         assertEq(ILoupe.facetAddress(selectorToReplace), address(dLoupe)); // replaced
-        assertEq(ILoupe.facetAddress(selectorToRemove),  address(0));      // removed
+        assertEq(ILoupe.facetAddress(selectorToRemove), address(0)); // removed
     }
 }
 
@@ -491,8 +485,6 @@ contract TestERC20Facet is StateDeployDiamond {
     }
 
     function testAllowanceAndTransferFrom() public {
-        console.log("Testing allowance and transferFrom...");
-
         TokenTimelock timeLockVault = IERC20Petro.mintTreasuryTokens(
             address(this),
             1000
@@ -514,20 +506,14 @@ contract TestERC20Facet is StateDeployDiamond {
         assertEq(IERC20Petro.allowance(address(this), recipient), 700);
 
         // --- DECREASE ALLOWANCE ---
-        IERC20Petro.decreaseAllowance(recipient, 100);
-        assertEq(IERC20Petro.allowance(address(this), recipient), 600);
-
-        // --- TRANSFER FROM ---
-        console.log(
-            "sender balance before transferFrom: %s",
-            IERC20Petro.balanceOf(address(this))
-        );
+        IERC20Petro.decreaseAllowance(recipient, 50);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 650);
 
         vm.prank(recipient);
         IERC20Petro.transferFrom(address(this), recipient, 300);
 
         assertEq(IERC20Petro.balanceOf(recipient), 300);
-        assertEq(IERC20Petro.allowance(address(this), recipient), 300);
+        assertEq(IERC20Petro.allowance(address(this), recipient), 350);
 
         // --- DECREASE BELOW ZERO SHOULD REVERT ---
         vm.expectRevert("ERC20: decreased allowance below zero");
@@ -592,17 +578,16 @@ contract TestFactoryVault is StateDeployDiamond {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     function testVaultCreation() public {
-        //create token timelock
-
         uint256 initialVaultCount = IVaultFactory.vaultCount();
         assertEq(initialVaultCount, 0);
-        IERC20 IERC20P = IERC20(address(IERC20Petro));
-        TokenTimelock timelock = IVaultFactory.createTokenTimelock(
-            IERC20P,
+        TokenTimelock firstVault = IERC20Petro.mintProducerTokens(
             address(this),
-            block.timestamp + 100000000,
-            42424242
+            42424242,
+            1000,
+            LibErc20Enhanced.AssetCategory.ConductiveAndRareEarthMetals
         );
+
+        address returnVaultAddress = address(firstVault);
 
         assertEq(IVaultFactory.vaultCount(), initialVaultCount + 1);
         uint256[] memory vaultIdArray = IVaultFactory.getHolderVaults(
@@ -610,22 +595,30 @@ contract TestFactoryVault is StateDeployDiamond {
         );
         assertEq(vaultIdArray[0], 1);
         assertEq(vaultIdArray.length, 1);
-        assertEq(IVaultFactory.getVaultLocationById(1), address(timelock));
-        assertEq(timelock.balanceOf(address(this)), 42424242);
+        address firstValultAddress = IVaultFactory.getVaultLocationById(1);
+        assertEq(IVaultFactory.getVaultLocationById(1), address(firstVault));
+        assertEq(
+            IVaultFactory.getVaultFractionalOwnerBalance(1, address(this)),
+            42424242
+        );
 
-        TokenTimelock timelock2 = IVaultFactory.createTokenTimelock(
-            IERC20P,
+        TokenTimelock secondVault = IERC20Petro.mintProducerTokens(
             address(this),
-            block.timestamp + 200000000,
-            242424242
+            242424242,
+            1000,
+            LibErc20Enhanced.AssetCategory.ConductiveAndRareEarthMetals
         );
         vaultIdArray = IVaultFactory.getHolderVaults(address(this));
         assertEq(IVaultFactory.vaultCount(), initialVaultCount + 2);
         assertEq(vaultIdArray[0], 1);
         assertEq(vaultIdArray[1], 2);
         assertEq(vaultIdArray.length, 2);
-        assertEq(IVaultFactory.getVaultLocationById(2), address(timelock2));
-        assertEq(timelock2.balanceOf(address(this)), 242424242);
+        assertEq(IVaultFactory.getVaultLocationById(2), address(secondVault));
+        assertEq(secondVault.balanceOf(address(this)), 242424242);
+        assertEq(
+            IVaultFactory.getVaultFractionalOwnerBalance(2, address(this)),
+            242424242
+        );
     }
 
     function testTreasuryVaultLock() public {
@@ -864,11 +857,6 @@ contract TestPausable is StateDeployDiamond {
         );
     }
 }
-// // test proper deployment of diamond
-
-//TO TEST
-// NEW hold period changes the hold period of new time lock vaults
-//todo: full rPTCN tests
 
 // ─── Vault factory edge cases ────────────────────────────────────────────────
 
@@ -898,10 +886,12 @@ contract TestVaultEdgeCases is StateDeployDiamond {
 
     function testReleaseVault_ReceiptTransferGrantsReleaseRight() public {
         address alice = address(0xA1ce);
-        address bob   = address(0xB0b0);
+        address bob = address(0xB0b0);
 
         IERC20Petro.mintTreasuryTokens(alice, 1000);
-        TokenTimelock vault = TokenTimelock(IVaultFactory.getVaultLocationById(1));
+        TokenTimelock vault = TokenTimelock(
+            IVaultFactory.getVaultLocationById(1)
+        );
 
         vm.prank(alice);
         vault.transfer(bob, 1000);
@@ -922,10 +912,12 @@ contract TestVaultEdgeCases is StateDeployDiamond {
 
     function testReleaseVault_PartialReleaseReducesVaultBalance() public {
         address alice = address(0xA1ce);
-        address bob   = address(0xB0b0);
+        address bob = address(0xB0b0);
 
         IERC20Petro.mintTreasuryTokens(alice, 1000);
-        TokenTimelock vault = TokenTimelock(IVaultFactory.getVaultLocationById(1));
+        TokenTimelock vault = TokenTimelock(
+            IVaultFactory.getVaultLocationById(1)
+        );
 
         vm.prank(alice);
         vault.transfer(bob, 400); // alice keeps 600, bob gets 400
@@ -954,7 +946,11 @@ contract TestVaultEdgeCases is StateDeployDiamond {
 // ─── Approve edge cases ──────────────────────────────────────────────────────
 
 contract TestApproveEdgeCases is StateDeployDiamond {
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 
     function _mintAndRelease(uint256 amount) internal {
         IERC20Petro.mintTreasuryTokens(address(this), amount);
@@ -1027,11 +1023,11 @@ contract DiamondInterfaceInit {
 
 contract TestSupportsInterface is StateDeployDiamond {
     // ERC-165: bytes4(keccak256("supportsInterface(bytes4)"))
-    bytes4 constant IERC165_ID        = 0x01ffc9a7;
+    bytes4 constant IERC165_ID = 0x01ffc9a7;
     // EIP-2535 DiamondLoupe: XOR of its four function selectors (per the standard)
     bytes4 constant IDIAMOND_LOUPE_ID = 0x48e2b093;
     // IDiamondCut: diamondCut((address,uint8,bytes4[])[],address,bytes)
-    bytes4 constant IDIAMOND_CUT_ID   = 0x1f931c1c;
+    bytes4 constant IDIAMOND_CUT_ID = 0x1f931c1c;
 
     // supportsInterface lives on DiamondLoupeFacet which implements IERC165,
     // but IDiamondLoupe does not declare it — cast through IERC165 directly.

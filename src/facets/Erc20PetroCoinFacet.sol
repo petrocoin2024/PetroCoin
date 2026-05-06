@@ -170,7 +170,7 @@ contract Erc20PetroCoinFacet {
         uint256 estimatedValue,
         LibErc20Enhanced.AssetCategory assetCategory
     ) public returns (TokenTimelock timelock) {
-        mintProducerTokens(account, amount);
+        timelock = mintProducerTokens(account, amount);
         emit TokenDistribution(amount, estimatedValue, assetCategory);
     }
 
@@ -181,18 +181,14 @@ contract Erc20PetroCoinFacet {
         LibErc20Enhanced.enforceNotPaused();
         LibDiamond.enforceIsContractOwner();
         uint256 producerHoldPeriod = LibErc20Enhanced.producerHoldPeriod();
-        // TokenTimelock timeVault = _createTokenTimelock(
-        //     IERC20(address(this)),
-        //     account,
-        //     block.timestamp + producerHoldPeriod
-        // );
+
         LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
             .vaultFactoryStorage();
 
         uint256 vaultId = es.vaultCount + 1;
         es.vaultCount = vaultId;
         es.holderVaults[account].push(vaultId);
-        //TODO: Use create2 for a erc20 transfer prior to vault creation and confirm vault balance in the contructor.
+
         timelock = new TokenTimelock(
             IERC20(address(this)),
             account,
