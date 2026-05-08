@@ -69,7 +69,7 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         VaultFactoryFacetV2 newVaultFactory = new VaultFactoryFacetV2();
         FacetCut[] memory cut = new FacetCut[](2);
 
-        bytes4[] memory replaceSelectors = new bytes4[](9);
+        bytes4[] memory replaceSelectors = new bytes4[](8);
         uint256 nonce = 0;
         bytes4[] memory addSelectors = new bytes4[](1);
         bytes4[] memory selectors = generateSelectors("VaultFactoryFacetV2");
@@ -79,7 +79,7 @@ contract TestDeployDiamondWithOwners is StateDeployDiamond {
         );
 
         bytes4 testingOldSelector = bytes4(
-            keccak256("createTokenTimelock(address,address,uint256,uint256)")
+            keccak256("getVaultBalanceById(uint256)")
         );
 
         bytes4 testSelectorFunction = VaultFactoryFacetV2

@@ -7,41 +7,6 @@ import {LibVaultFactory} from "../libraries/LibVaultFactory.sol";
 import {LibDiamond} from "../libraries/LibDiamond.sol";
 
 contract VaultFactoryFacet {
-    //todo test as an internal function only
-    function createTokenTimelock(
-        IERC20 token,
-        address beneficiary,
-        uint256 releaseTime,
-        uint256 amountToLock
-    ) public returns (TokenTimelock) {
-        return
-            _createTokenTimelock(token, beneficiary, releaseTime, amountToLock);
-    }
-
-    function _createTokenTimelock(
-        IERC20 token,
-        address beneficiary,
-        uint256 releaseTime,
-        uint256 amountToLock
-    ) internal returns (TokenTimelock) {
-        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
-            .vaultFactoryStorage();
-
-        uint256 vaultId = es.vaultCount + 1;
-        es.vaultCount = vaultId;
-        es.holderVaults[beneficiary].push(vaultId);
-
-        TokenTimelock timelock = new TokenTimelock(
-            token,
-            beneficiary,
-            releaseTime,
-            amountToLock
-        );
-        es.vaultLocation[vaultId] = address(timelock);
-
-        return timelock;
-    }
-
     function vaultCount() public view returns (uint256) {
         return LibVaultFactory._getVaultCount();
     }

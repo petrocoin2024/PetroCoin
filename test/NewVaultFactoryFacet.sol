@@ -82,41 +82,6 @@ contract NewTokenTimelock is ERC20 {
     }
 }
 contract VaultFactoryFacetV2 {
-    //todo test as an internal function only
-    function createTokenTimelock(
-        IERC20 token,
-        address beneficiary,
-        uint256 releaseTime,
-        uint256 amountToLock
-    ) public returns (NewTokenTimelock) {
-        return
-            _createTokenTimelock(token, beneficiary, releaseTime, amountToLock);
-    }
-
-    function _createTokenTimelock(
-        IERC20 token,
-        address beneficiary,
-        uint256 releaseTime,
-        uint256 amountToLock
-    ) internal returns (NewTokenTimelock) {
-        LibVaultFactory.VaultFactoryStorage storage es = LibVaultFactory
-            .vaultFactoryStorage();
-
-        uint256 vaultId = es.vaultCount + 1;
-        es.vaultCount = vaultId;
-        es.holderVaults[beneficiary].push(vaultId);
-
-        NewTokenTimelock timelock = new NewTokenTimelock(
-            token,
-            beneficiary,
-            releaseTime,
-            amountToLock
-        );
-        es.vaultLocation[vaultId] = address(timelock);
-
-        return timelock;
-    }
-
     function vaultCount() public view returns (uint256) {
         return LibVaultFactory._getVaultCount();
     }
