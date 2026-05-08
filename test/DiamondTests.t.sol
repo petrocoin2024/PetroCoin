@@ -870,7 +870,9 @@ contract TestVaultEdgeCases is StateDeployDiamond {
         assertEq(IERC20Petro.balanceOf(address(this)), 1000);
 
         // receipt tokens are now burned — the caller has no shares left
-        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        vm.expectRevert(
+            "TokenTimelock: only beneficiaries with positive balance can release"
+        );
         IVaultFactory.releaseVaultTokens(1);
     }
 
@@ -880,7 +882,9 @@ contract TestVaultEdgeCases is StateDeployDiamond {
         vm.warp(releaseTime + 1);
 
         vm.prank(address(0xdead));
-        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        vm.expectRevert(
+            "VaultFactoryFacet: only beneficiary or owner can release vault tokens"
+        );
         IVaultFactory.releaseVaultTokens(1);
     }
 
@@ -901,7 +905,9 @@ contract TestVaultEdgeCases is StateDeployDiamond {
 
         // alice transferred away all her receipt tokens and can no longer release
         vm.prank(alice);
-        vm.expectRevert("TokenTimelock: only beneficiaries can release");
+        vm.expectRevert(
+            "VaultFactoryFacet: only beneficiary or owner can release vault tokens"
+        );
         IVaultFactory.releaseVaultTokens(1);
 
         // bob received the receipt tokens and is now entitled to release
@@ -957,13 +963,6 @@ contract TestApproveEdgeCases is StateDeployDiamond {
         uint256 id = IVaultFactory.vaultCount();
         vm.warp(IVaultFactory.getVaultReleaseTime(id) + 1);
         IVaultFactory.releaseVaultTokens(id);
-    }
-
-    function testApprove_RevertsIfInsufficientBalance() public {
-        // Non-standard: approve enforces caller has sufficient balance
-        address spender = address(0x123);
-        vm.expectRevert();
-        IERC20Petro.approve(spender, 500); // caller has 0 tokens
     }
 
     function testApprove_OverwritesExistingAllowance() public {

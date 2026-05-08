@@ -159,7 +159,6 @@ contract Erc20PetroCoinFacet {
             .producerHoldPeriod = _producerHoldPeriod;
     }
     function approve(address spender, uint256 amount) public returns (bool) {
-        require(LibErc20Enhanced.balanceOf(msg.sender) >= amount);
         LibErc20Enhanced.approve(msg.sender, spender, amount);
         return true;
     }
@@ -227,6 +226,4 @@ contract Erc20PetroCoinFacet {
         LibErc20Enhanced.burn(amount, redeemingAccount);
         emit TokenRedemption(amount, redeemedValue, assetCategory);
     }
-    //burnTreasureryToken
-    //          burns tokens from the treasury
 }

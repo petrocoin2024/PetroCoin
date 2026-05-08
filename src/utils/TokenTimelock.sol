@@ -11,8 +11,6 @@ contract TokenTimelock is ERC20 {
     bool public _released;
     address public immutable _initialBeneficiary;
 
-    //add RELEASED bool
-
     constructor(
         IERC20 token_,
         address beneficiary_,
@@ -64,7 +62,11 @@ contract TokenTimelock is ERC20 {
         );
         require(
             balanceOf(beneficiary_) > 0,
-            "TokenTimelock: only beneficiaries can release"
+            "TokenTimelock: only beneficiaries with positive balance can release"
+        );
+        require(
+            msg.sender == address(_token),
+            "TokenTimelock: only token contract can release"
         );
         require(!_released, "TokenTimelock: tokens already released");
         uint256 msgSenderBalance = balanceOf(beneficiary_);
