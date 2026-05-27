@@ -14,22 +14,15 @@ import "../lib/forge-std/src/console.sol";
 import "../src/facets/VaultFactoryFacet.sol";
 
 contract FullVaultAudit is Script, HelperContract {
-    Diamond diamond;
-    DiamondCutFacet dCutFacet;
-    DiamondLoupeFacet dLoupe;
-    OwnershipFacet ownerF;
     Erc20PetroCoinFacet erc20;
     VaultFactoryFacet vaultFactory;
 
     //interfaces with Facet ABI connected to diamond address
-    IDiamondLoupe ILoupe;
-    IDiamondCut ICut;
-    IOwnership IOwners;
+
     IErc20PetroCoin IERC20Petro;
     VaultFactoryFacet IVaultFactory;
 
     function run() external {
-        vm.startBroadcast();
         IVaultFactory = VaultFactoryFacet(
             address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
@@ -37,92 +30,46 @@ contract FullVaultAudit is Script, HelperContract {
             address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
 
-        IOwners = IOwnership(
-            address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
-        );
-        console.log("Diamond Owner:", IOwners.owner());
-        console.log("Diamond Address:", address(IVaultFactory));
+        console.log("number of vaults made: ", IVaultFactory.vaultCount());
+        console.log("total PTCN supply: ", IERC20Petro.totalSupply());
 
-        console.log("number of vaults made:", IVaultFactory.vaultCount());
-        console.log("total PTCN supply:", IERC20Petro.totalSupply());
-        console.log(
-            "total treasury minted",
-            IERC20Petro.getMintedTreasuryTokens()
-        );
         console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-        for (uint256 i = 1; i <= IVaultFactory.vaultCount(); i++) {
+        for (uint256 i = 24; i <= IVaultFactory.vaultCount(); i++) {
             console.log("vaultId:", i);
             address vaultAddress = IVaultFactory.getVaultLocationById(i);
             console.log("Vault Address:", vaultAddress);
-            uint256 releaseTime = IVaultFactory.getVaultReleaseTime(i);
-            console.log("releaseTime:", releaseTime);
+            try IVaultFactory.getVaultReleaseTime(i) returns (
+                uint256 releaseTime
+            ) {
+                console.log("releaseTime:", releaseTime);
+            } catch {
+                console.log("releaseTime: unable to retrieve");
+            }
             address beneficiary = IVaultFactory.getVaultInitialBeneficiary(i);
             console.log("beneficiary:", beneficiary);
-            uint256 vaultBalance = IVaultFactory.getVaultBalanceById(i);
-            console.log("vault balance:", vaultBalance);
-            uint256 ptcnBalance = IERC20Petro.balanceOf(beneficiary);
-            console.log("Beneficiary PTCN Balance:", ptcnBalance);
+            try IVaultFactory.getVaultBalanceById(i) returns (
+                uint256 vaultBalance
+            ) {
+                console.log("vault balance:", vaultBalance);
+            } catch {
+                console.log("vault balance: unable to retrieve");
+            }
+            // uint256 ptcnBalance = IERC20Petro.balanceOf(beneficiary);
+            // console.log("Beneficiary PTCN Balance:", ptcnBalance);
+
             console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
             console.log(" ");
         }
-
-        uint256[] memory holderVaults = IVaultFactory.getHolderVaults(
-            0x44F7595019b9adC600e379B4748F46d4A896Af04
-        );
-        console.log("holder vault length ", holderVaults.length);
-        for (uint256 i = 0; i < holderVaults.length; i++) {
-            console.log("holder vault ", i);
-            console.log(holderVaults[i]);
-        }
-        vm.stopBroadcast();
     }
 
-    //     vm.startBroadcast();
-    //     IVaultFactory = VaultFactoryFacet(
-    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
-    //     );
-    //     IERC20Petro = IErc20PetroCoin(
-    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
-    //     );
-
-    //     IOwners = IOwnership(
-    //         address(0x6E9Ef463595E26040a42A65D6ce500450Be3e772)
-    //     );
-    //     console.log("Diamond Owner:", IOwners.owner());
-    //     console.log("Diamond Address:", address(IVaultFactory));
-
-    //     console.log("number of vaults made:", IVaultFactory.vaultCount());
-    //     console.log("total PTCN supply:", IERC20Petro.totalSupply());
-    //     console.log(
-    //         "total treasury minted",
-    //         IERC20Petro.getMintedTreasuryTokens()
-    //     );
-    //     console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-    //     for (uint256 i = 1; i <= IVaultFactory.vaultCount(); i++) {
-    //         console.log("vaultId:", i);
-    //         address vaultAddress = IVaultFactory.getVaultLocationById(i);
-    //         console.log("Vault Address:", vaultAddress);
-    //         uint256 releaseTime = IVaultFactory.getVaultReleaseTime(i);
-    //         console.log("releaseTime:", releaseTime);
-    //         address beneficiary = IVaultFactory.getVaultBeneficiary(i);
-    //         console.log("beneficiary:", beneficiary);
-    //         uint256 vaultBalance = IVaultFactory.getVaultBalanceById(i);
-    //         console.log("vault balance:", vaultBalance);
-    //         uint256 ptcnBalance = IERC20Petro.balanceOf(beneficiary);
-    //         console.log("Beneficiary PTCN Balance:", ptcnBalance);
-    //         console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-    //         console.log(" ");
-    //     }
-
-    //     uint256[] memory holderVaults = IVaultFactory.getHolderVaults(
-    //         0x44F7595019b9adC600e379B4748F46d4A896Af04
-    //     );
-    //     console.log("holder vault length ", holderVaults.length);
-    //     for (uint256 i = 0; i < holderVaults.length; i++) {
-    //         console.log("holder vault ", i);
-    //         console.log(holderVaults[i]);
-    //     }
-    //     vm.stopBroadcast();
+    // uint256[] memory holderVaults = IVaultFactory.getHolderVaults(
+    //     0x44F7595019b9adC600e379B4748F46d4A896Af04
+    // );
+    // console.log("holder vault length ", holderVaults.length);
+    // for (uint256 i = 0; i < holderVaults.length; i++) {
+    //     console.log("holder vault ", i);
+    //     console.log(holderVaults[i]);
+    // }
     // }
 }
 

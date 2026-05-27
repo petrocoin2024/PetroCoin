@@ -36,7 +36,9 @@ library LibErc20Enhanced {
         RareArt,
         Collectibles,
         PreciousStones,
-        OneOfAKind
+        OneOfAKind,
+        Technology,
+        Minerals
     }
     event Paused(address account, uint256 time);
     event Unpaused(address account, uint256 time);

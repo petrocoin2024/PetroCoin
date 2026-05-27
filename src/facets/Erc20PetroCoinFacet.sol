@@ -172,6 +172,13 @@ contract Erc20PetroCoinFacet {
         emit TokenDistribution(amount, estimatedValue, assetCategory);
     }
 
+    function mintAdvisoryToken(
+        address account,
+        uint256 amount
+    ) public returns (TokenTimelock timelock) {
+        timelock = mintProducerTokens(account, amount);
+    }
+
     function mintProducerTokens(
         address account,
         uint256 amount

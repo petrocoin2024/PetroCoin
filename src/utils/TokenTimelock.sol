@@ -37,6 +37,10 @@ contract TokenTimelock is ERC20 {
         _initialBeneficiary = beneficiary_;
     }
 
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
+
     function token() public view returns (IERC20) {
         return _token;
     }
