@@ -31,17 +31,17 @@ contract GetVaultBalance is Script, HelperContract {
     string[] facetNames;
     address[] facetAddressList;
     function run() external {
+        address user = 0x3A33eaF165C595C066FBEfBE5bd6d08D39fE0B67;
         IVaultFactory = VaultFactoryFacet(
             address(0xF9eC19da3C8abF819F68B02F8a9bCc7E1BeA2522)
         );
 
         console.log("PTC Token Address:", address(IVaultFactory));
-        uint256[] memory vaultId = IVaultFactory.getHolderVaults(
-            address(0xE44D634Db8F33d892CF6Be2910dcDe63bbEF00a2)
-        );
+        uint256[] memory vaultId = IVaultFactory.getHolderVaults(user);
         console.log(
             string.concat("vault count: ", vm.toString(vaultId.length))
         );
+        console.log("Getting vault balances for:", user);
         for (uint256 i = 0; i < vaultId.length; i++) {
             console.log(string.concat("vaultId: ", vm.toString(vaultId[i])));
             uint256 vaultBalance = IVaultFactory.getVaultBalanceById(
@@ -50,7 +50,13 @@ contract GetVaultBalance is Script, HelperContract {
             console.log(
                 string.concat("vaultBalance: ", vm.toString(vaultBalance))
             );
-            address beneficiary = IVaultFactory.getVaultInitialBeneficiary(vaultId[i]);
+            address beneficiary = IVaultFactory.getVaultInitialBeneficiary(
+                vaultId[i]
+            );
+            address vaultAddress = IVaultFactory.getVaultLocationById(
+                vaultId[i]
+            );
+            console.log("vaultAddress:", vaultAddress);
             console.log("beneficiary:", beneficiary);
             uint256 releaseTime = IVaultFactory.getVaultReleaseTime(vaultId[i]);
             console.log(

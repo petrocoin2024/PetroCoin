@@ -4,6 +4,8 @@
 
 This upgradeable contract is developed by Yan Digilov and is used to create a proxy contract for the PetroCoin project. The contract is based on the Diamond Standard and is used to upgrade the PetroCoin contract without losing the state of the contract.
 
+> New to PetroCoin, or not a developer? See the [User Guide](USER_GUIDE.md) for a plain-English explanation of how PTCN, vaults, and receipt tokens work, and how to add them to your wallet.
+
 ## Key Components
 
 ## Dependencies
