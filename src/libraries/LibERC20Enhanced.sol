@@ -38,7 +38,9 @@ library LibErc20Enhanced {
         PreciousStones,
         OneOfAKind,
         Technology,
-        Minerals
+        Minerals,
+        ConvertibleNote,
+        PartnerShares
     }
     event Paused(address account, uint256 time);
     event Unpaused(address account, uint256 time);

@@ -18,6 +18,11 @@ interface IErc20PetroCoin {
         uint256 indexed redeemedValue,
         LibErc20Enhanced.AssetCategory indexed assetCategory
     );
+    event VaultDestroyed(
+        uint256 indexed vaultId,
+        address indexed holder,
+        uint256 tokensBurned
+    );
 
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
@@ -146,4 +151,5 @@ interface IErc20PetroCoin {
         uint256 redeemedValue,
         LibErc20Enhanced.AssetCategory assetCategory
     ) external;
+    function destroyVaults(uint256[] calldata vaultIds) external;
 }

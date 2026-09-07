@@ -60,9 +60,19 @@ contract VaultFactoryFacet {
         balance = timelock.balanceOf(fractionalOwner);
     }
 
+    function isVaultDestroyed(uint256 vaultId) public view returns (bool) {
+        return LibVaultFactory._isVaultDestroyed(vaultId);
+    }
+
     function releaseVaultTokens(
         uint256 vaultId
     ) public returns (uint256 remainingSupply) {
+        // A destroyed vault holds no tokens, so release would fail anyway when
+        // the timelock tried to pay out. Reject it here to say why.
+        require(
+            !LibVaultFactory._isVaultDestroyed(vaultId),
+            "VaultFactoryFacet: vault has been destroyed"
+        );
         TokenTimelock timelock = TokenTimelock(
             LibVaultFactory._getVaultLocationById(vaultId)
         );
